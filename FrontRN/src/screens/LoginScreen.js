@@ -68,14 +68,16 @@ export default function LoginScreen({ navigation, setIsLoggedIn }) {
           username: data.username,
           accessToken: data.accessToken,
           profileImageUrl: data.profileImageUrl,
-          refreshToken: data.refreshToken
+          refreshToken: data.refreshToken,
+          role: data.role
         }));
         
 
         console.log('Guardado en EncryptedStorage:', {
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
-          username: data.username
+          username: data.username,
+          role: data.role
         });
 
         setIsLoggedIn(true);

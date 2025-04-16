@@ -24,7 +24,6 @@ export default function CrearEventoScreen({ route }) {
   const [description, setDescription] = useState('');
   const [creatorId, setCreatorId] = useState(null);
   const [creatorName, setCreatorName] = useState(null);
-  // Eliminamos creatorImage para no fijarla al crear el evento
   const [filteredLocations, setFilteredLocations] = useState([]);
 
   const [startDate, setStartDate] = useState(new Date());
@@ -39,16 +38,15 @@ export default function CrearEventoScreen({ route }) {
         if (stored) {
           const parsed = JSON.parse(stored);
           const token = parsed.accessToken;
-  
+
           const res = await fetch('http://10.0.2.2:5000/api/users/me', {
             headers: { Authorization: `Bearer ${token}` },
           });
-  
+
           if (res.ok) {
             const userData = await res.json();
             setCreatorId(userData.id);
             setCreatorName(userData.username);
-            // No fijamos creatorImage, pues en la visualización se hará fetch dinámico usando creatorId
           } else {
             console.error('❌ Error al cargar info del usuario');
           }
@@ -65,8 +63,10 @@ export default function CrearEventoScreen({ route }) {
     if (text.length > 2) {
       const lowerText = text.toLowerCase();
       const filtered = calles.elementos.filter((c) =>
-        c.nomoficial?.toLowerCase().includes(lowerText) ||
-        c.traducnooficial?.toLowerCase().includes(lowerText)
+        (c.nomoficial && c.nomoficial.toLowerCase().includes(lowerText)) ||
+        (c.traducnooficial &&
+          c.traducnooficial.toLowerCase() !== 'null' &&
+          c.traducnooficial.toLowerCase().includes(lowerText))
       );
       setFilteredLocations(filtered.slice(0, 10));
     } else {
@@ -75,7 +75,10 @@ export default function CrearEventoScreen({ route }) {
   };
 
   const selectLocation = (item) => {
-    const nombre = `${item.codtipovia} ${item.traducnooficial} ${item.nomoficial}, ${calles.Municipio}`;
+    const traduc = item.traducnooficial && item.traducnooficial.toLowerCase() !== 'null'
+      ? `${item.traducnooficial} `
+      : '';
+    const nombre = `${item.codtipovia} ${traduc}${item.nomoficial}, ${calles.Municipio}`;
     setLocation(nombre);
     setFilteredLocations([]);
   };
@@ -86,7 +89,6 @@ export default function CrearEventoScreen({ route }) {
       return;
     }
 
-    // Creamos el nuevo evento sin fijar la imagen del usuario; se usará creatorId para consultarla dinámicamente
     const newEvent = {
       title,
       location,
@@ -98,7 +100,7 @@ export default function CrearEventoScreen({ route }) {
       creatorId,
       createdAt: new Date().toISOString(),
     };
-    
+
     try {
       const auth = await EncryptedStorage.getItem('auth');
       const token = JSON.parse(auth)?.accessToken;
@@ -163,7 +165,7 @@ export default function CrearEventoScreen({ route }) {
                   onPress={() => selectLocation(item)}
                 >
                   <Text style={{ color: '#fff' }}>
-                    {`${item.codtipovia} ${item.traducnooficial} ${item.nomoficial}, ${calles.Municipio}`}
+                    {`${item.codtipovia} ${item.traducnooficial && item.traducnooficial.toLowerCase() !== 'null' ? item.traducnooficial + ' ' : ''}${item.nomoficial}, ${calles.Municipio}`}
                   </Text>
                 </TouchableOpacity>
               )}

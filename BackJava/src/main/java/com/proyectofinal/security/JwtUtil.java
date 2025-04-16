@@ -24,7 +24,7 @@ public class JwtUtil {
         return Jwts.builder()
             .setSubject(email)
             .setIssuedAt(new Date(now))
-            .setExpiration(new Date(now + 1000 * 60 * 15)) // 15 minutos
+            .setExpiration(new Date(now + 1000 * 60 * 2)) // 15 minutos
             .setId(UUID.randomUUID().toString()) // jti
             .signWith(getSigningKey(), SignatureAlgorithm.HS256)
             .compact();
@@ -51,7 +51,7 @@ public class JwtUtil {
     }
 
     public String extractJti(String token) {
-        return extractClaims(token).getId(); // El jti se encuentra en el campo "jti"
+        return extractClaims(token).getId();
     }
 
     

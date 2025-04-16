@@ -31,18 +31,17 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/api/auth/**",
-                    "/api/users/register",
-                    "/api/users/profile-image/**", // permitir acceso sin token
-                    "/api/events/**"
-                ).permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/users/register").permitAll()
+                .requestMatchers("/api/users/profile-image/**").permitAll()
+                .requestMatchers("/api/events", "/api/events/*").permitAll() 
                 .anyRequest().authenticated()
             )
             .addFilterBefore(new JwtAuthFilter(jwtUtil, userRepository, redisService), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
 
 
     

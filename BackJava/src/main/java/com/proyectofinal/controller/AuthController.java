@@ -33,7 +33,6 @@ public class AuthController {
     @Autowired
     private RedisService redisService;
 
-  
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         Optional<User> userOpt = userRepository.findByEmail(loginRequest.getEmail());
@@ -47,17 +46,20 @@ public class AuthController {
                 String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
                 String deviceId = loginRequest.getDeviceId();
 
-                user.getRefreshTokens().removeIf(rt -> deviceId.equals(rt.getDeviceId()));
+               
+                user.getRefreshTokens().removeIf(rt ->
+                    deviceId.equals(rt.getDeviceId()) || rt.getToken().equals(refreshToken));
+
                 user.getRefreshTokens().add(new RefreshTokenInfo(deviceId, refreshToken));
                 userRepository.save(user);
 
                 Map<String, Object> response = new HashMap<>();
-                response.put("id", user.getId()); 
+                response.put("id", user.getId());
                 response.put("username", user.getUsername());
                 response.put("accessToken", accessToken);
                 response.put("refreshToken", refreshToken);
                 response.put("profileImageUrl", user.getProfileImageUrl() != null ? user.getProfileImageUrl() : "");
-
+                response.put("role", user.getRole());
 
                 return ResponseEntity.ok(response);
             }
@@ -65,18 +67,6 @@ public class AuthController {
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciales inválidas");
     }
-
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody User newUser) {
-        if (userRepository.findByEmail(newUser.getEmail()).isPresent()) {
-            return ResponseEntity.badRequest().body("El usuario ya existe");
-        }
-
-        newUser.setPassword(passwordEncoder.encode(newUser.getPassword()));
-        userRepository.save(newUser);
-        return ResponseEntity.ok("Usuario registrado correctamente");
-    }
-
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
@@ -86,6 +76,8 @@ public class AuthController {
             .filter(u -> u.getRefreshTokens().stream()
                 .anyMatch(rt -> rt.getToken().equals(refreshToken) && deviceId.equals(rt.getDeviceId())))
             .findFirst();
+
+        System.out.println("🔁 Refresh solicitado con token: " + refreshToken + ", deviceId: " + deviceId);
 
         if (userOpt.isPresent()) {
             User user = userOpt.get();
@@ -97,21 +89,39 @@ public class AuthController {
             String newAccessToken = jwtUtil.generateToken(user.getEmail());
             String newRefreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
+         
             user.getRefreshTokens().removeIf(rt -> deviceId.equals(rt.getDeviceId()));
+
+       
             user.getRefreshTokens().add(new RefreshTokenInfo(deviceId, newRefreshToken));
+
+         
+            Map<String, String> uniqueTokens = new HashMap<>();
+            for (RefreshTokenInfo rt : user.getRefreshTokens()) {
+                uniqueTokens.put(rt.getDeviceId(), rt.getToken());
+            }
+            List<RefreshTokenInfo> sanitizedList = new ArrayList<>();
+            for (Map.Entry<String, String> entry : uniqueTokens.entrySet()) {
+                sanitizedList.add(new RefreshTokenInfo(entry.getKey(), entry.getValue()));
+            }
+            user.setRefreshTokens(sanitizedList);
+
             userRepository.save(user);
 
-            Map<String, String> response = new HashMap<>();
+            Map<String, Object> response = new HashMap<>();
             response.put("accessToken", newAccessToken);
             response.put("refreshToken", newRefreshToken);
             response.put("username", user.getUsername());
+            response.put("id", user.getId());
+            response.put("role", user.getRole());
+            response.put("profileImageUrl", user.getProfileImageUrl() != null ? user.getProfileImageUrl() : "");
+
             return ResponseEntity.ok(response);
         }
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token no reconocido");
     }
 
-    // LOGOUT Token Blacklist con Redis
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
@@ -126,7 +136,7 @@ public class AuthController {
 
         return ResponseEntity.ok("Sesión cerrada correctamente");
     }
-    
+
     @PostMapping("/logout-device")
     public ResponseEntity<?> logoutDevice(@RequestBody Map<String, String> request, HttpServletRequest httpRequest) {
         String deviceId = request.get("deviceId");
@@ -143,11 +153,9 @@ public class AuthController {
         if (userOpt.isPresent()) {
             User user = userOpt.get();
 
-            // 1. Eliminar el refresh token para ese dispositivo
             user.getRefreshTokens().removeIf(rt -> deviceId.equals(rt.getDeviceId()));
             userRepository.save(user);
 
-            // 2. Blacklistear el access token actual
             String jti = jwtUtil.extractJti(token);
             long expTime = jwtUtil.extractClaims(token).getExpiration().getTime() - System.currentTimeMillis();
             redisService.saveTokenToBlacklist(jti, expTime);

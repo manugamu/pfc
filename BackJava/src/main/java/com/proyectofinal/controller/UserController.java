@@ -37,29 +37,29 @@ public class UserController {
     
     @PutMapping("/profile-image")
     public ResponseEntity<?> updateProfileImage(@RequestBody Map<String, String> request, Authentication auth) {
-        String email = auth.getName(); // obtenido del JWT
+        String email = auth.getName(); 
         Optional<User> userOpt = userService.findByEmail(email);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             String profileImageUrl = request.get("profileImageUrl");
 
-            // Actualizamos la foto de perfil en la entidad del usuario
+           
             user.setProfileImageUrl(profileImageUrl);
             userRepository.save(user);
 
-            // Notificamos al servidor de chat de Node.js para actualizar la URL en los mensajes del usuario
+          
             try {
                 RestTemplate restTemplate = new RestTemplate();
                 Map<String, String> payload = new HashMap<>();
                 payload.put("userId", user.getId());
                 payload.put("newProfileImageUrl", profileImageUrl);
-                // Se asume que el servidor de chat corre en localhost:4000
+         
                 String nodeChatUrl = "http://localhost:4000/api/chat/update-profile-image";
                 restTemplate.put(nodeChatUrl, payload);
                 System.out.println("Notificación de actualización enviada al servidor de chat.");
             } catch (Exception e) {
                 System.err.println("Error al notificar el cambio de imagen al servidor de chat: " + e.getMessage());
-                // Puedes optar por retornar un error o continuar, según la lógica de tu aplicación.
+           
             }
             return ResponseEntity.ok("Foto de perfil actualizada");
         } else {
@@ -82,7 +82,7 @@ public class UserController {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            // Retornamos un objeto JSON simple con la URL
+           
             Map<String, String> response = new HashMap<>();
             response.put("profileImageUrl",
                 user.getProfileImageUrl() != null ? user.getProfileImageUrl() : ""
@@ -95,11 +95,11 @@ public class UserController {
     }
     
     
-    @GetMapping("/protected") // Prueba de seguridad, sólo en producción
+    @GetMapping("/protected") 
     public ResponseEntity<?> getProtectedInfo() {
-        // Obtener la autenticación del contexto de seguridad
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        // El nombre del usuario fue puesto como 'subject' en el JWT (suele ser el email)
+
         String email = authentication.getName();
         Map<String, String> response = new HashMap<>();
         response.put("message", "✅ Hola " + email + ", estás autenticado correctamente.");

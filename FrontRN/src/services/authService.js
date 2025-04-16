@@ -1,8 +1,11 @@
 import EncryptedStorage from 'react-native-encrypted-storage';
-import { getDeviceId } from './deviceService'; 
+import { getDeviceId } from './deviceService';
+import { Alert } from 'react-native';
 
+let isRefreshing = false;
+let refreshPromise = null;
 
-export async function getValidAccessToken() {
+export async function getValidAccessToken(navigation = null) {
   const stored = await EncryptedStorage.getItem('auth');
   if (!stored) return null;
 
@@ -10,25 +13,50 @@ export async function getValidAccessToken() {
   const isExpired = isJwtExpired(accessToken);
   if (!isExpired) return accessToken;
 
-  try {
-    const deviceId = await getDeviceId();
-    const res = await fetch('http://10.0.2.2:5000/api/auth/refresh', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken, deviceId }),
-    });
-
-    if (!res.ok) throw new Error('Refresh token inválido');
-
-    const data = await res.json();
-    await EncryptedStorage.setItem('auth', JSON.stringify(data));
-    return data.accessToken;
-  } catch (err) {
-    console.error('Error renovando token:', err);
-    return null;
+  if (isRefreshing) {
+    return refreshPromise;
   }
-}
 
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    try {
+      const deviceId = await getDeviceId();
+      console.log("➡️ Enviando para refresh:");
+      console.log("refreshToken:", refreshToken);
+      console.log("deviceId:", deviceId);
+
+      const res = await fetch('http://10.0.2.2:5000/api/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken, deviceId }),
+      });
+
+      if (!res.ok) throw new Error('Refresh token inválido');
+
+      const data = await res.json();
+
+      const { accessToken: newAccessToken, refreshToken: newRefreshToken, username, profileImageUrl, id } = data;
+      await EncryptedStorage.setItem('auth', JSON.stringify({
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+        username,
+        profileImageUrl,
+        id,
+      }));
+
+      return newAccessToken;
+    } catch (err) {
+      console.error('Error renovando token:', err);
+      await logoutUser(navigation);
+      return null;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
 
 export async function validateStoredToken() {
   try {
@@ -47,16 +75,21 @@ export async function validateStoredToken() {
   }
 }
 
-
-export async function logoutUser() {
+export async function logoutUser(navigation = null) {
   try {
     await EncryptedStorage.removeItem('auth');
     console.log('🔒 Usuario desconectado: token eliminado');
+    if (navigation) {
+      Alert.alert('Sesión expirada', 'Por favor, inicia sesión de nuevo.');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    }
   } catch (e) {
     console.error('⚠️ Error eliminando token:', e);
   }
 }
-
 
 function isJwtExpired(token) {
   try {

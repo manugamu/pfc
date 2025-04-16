@@ -6,17 +6,20 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
+  Alert
 } from 'react-native';
 import Evento from '../components/Eventos';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { getValidAccessToken, logoutUser } from '../services/authService'; 
-  
+import { getValidAccessToken, logoutUser } from '../services/authService';
+import EncryptedStorage from 'react-native-encrypted-storage';
+
 export default function HomeScreen({ setIsLoggedIn }) {
   const navigation = useNavigation();
   const [eventos, setEventos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
   const handleEventoPress = (evento) => {
     navigation.navigate('EventoChatScreen', {
@@ -24,22 +27,21 @@ export default function HomeScreen({ setIsLoggedIn }) {
       title: evento.title,
       location: evento.location,
       backgroundImage: evento.imageUrl,
-      creatorImage: evento.creatorImage,
       creatorName: evento.creatorName,
+      creatorId: evento.creatorId,
     });
   };
 
   const handleCreateEvent = () => {
     navigation.navigate('CrearEvento', {
-      setIsLoggedIn, 
+      setIsLoggedIn,
     });
   };
-  
 
   const fetchEventos = async () => {
     try {
-      const token = await getValidAccessToken();
-      if (!token) throw new Error('Token inválido o expirado');
+      const token = await getValidAccessToken(navigation);
+      if (!token) return;
 
       const res = await fetch('http://10.0.2.2:5000/api/events', {
         headers: {
@@ -49,7 +51,7 @@ export default function HomeScreen({ setIsLoggedIn }) {
 
       if (res.status === 401 || res.status === 403) {
         console.warn('🔐 Token revocado o inválido. Cerrando sesión...');
-        await logoutUser();
+        await logoutUser(navigation);
         setIsLoggedIn(false);
         return;
       }
@@ -61,11 +63,17 @@ export default function HomeScreen({ setIsLoggedIn }) {
       const data = await res.json();
       setEventos(data);
     } catch (err) {
-      console.error(' Error cargando eventos:', err);
+      console.error('Error cargando eventos:', err);
       Alert.alert('Error', 'No se pudieron cargar los eventos. Intenta más tarde.');
     } finally {
       setLoading(false);
+      setRefreshing(false); 
     }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchEventos();
   };
 
   useEffect(() => {
@@ -76,13 +84,31 @@ export default function HomeScreen({ setIsLoggedIn }) {
     return unsubscribe;
   }, [navigation]);
 
+  useEffect(() => {
+    const getUserRole = async () => {
+      try {
+        const auth = await EncryptedStorage.getItem('auth');
+        if (auth) {
+          const parsed = JSON.parse(auth);
+          setUserRole(parsed.role);
+          console.log("🔐 Rol del usuario:", parsed.role);
+        }
+      } catch (err) {
+        console.error('Error obteniendo el rol del usuario:', err);
+      }
+    };
+    getUserRole();
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.toolbar}>
         <Text style={styles.title}>Eventos</Text>
-        <TouchableOpacity onPress={handleCreateEvent}>
-          <Icon name="add-circle-outline" size={28} color="#fff" />
-        </TouchableOpacity>
+        {userRole !== 'USER' && userRole !== 'USUARIO' && (
+          <TouchableOpacity onPress={handleCreateEvent}>
+            <Icon name="add-circle-outline" size={28} color="#fff" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {loading ? (
@@ -96,6 +122,8 @@ export default function HomeScreen({ setIsLoggedIn }) {
           renderItem={({ item }) => (
             <Evento {...item} onPress={() => handleEventoPress(item)} />
           )}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
           contentContainerStyle={{ paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
         />

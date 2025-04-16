@@ -90,20 +90,20 @@
 		</dependency>
 
 
-		<!-- Spring Data MongoDB -->
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-mongodb</artifactId>
 		</dependency>
 
-		<!-- Lombok (para evitar escribir setters/getters) -->
+	
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
 		</dependency>
 
-		<!-- DevTools para autoreload (opcional) -->
+		
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
@@ -111,7 +111,7 @@
 			<optional>true</optional>
 		</dependency>
 
-		<!-- Para pruebas unitarias -->
+		
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -131,7 +131,7 @@
 
 	<build>
 		<plugins>
-			<!-- Compilador Java -->
+		
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>

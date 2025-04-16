@@ -28,7 +28,6 @@ export default function Evento({
   const [fetchedCreatorImage, setFetchedCreatorImage] = useState(null);
   const [loadingImage, setLoadingImage] = useState(true);
 
-  // Realiza el fetch de la imagen del usuario usando el creatorId cada vez que se carga el componente
   useEffect(() => {
     const fetchCreatorImage = async () => {
       try {

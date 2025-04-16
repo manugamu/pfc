@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 
 const app = express();
 app.use(cors());
-app.use(express.json()); // Para parsear JSON en los endpoints
+app.use(express.json());
 
 // Conexión MongoDB
 mongoose.connect('mongodb://localhost:27017/PF', {
@@ -22,7 +22,7 @@ const messageSchema = new mongoose.Schema({
   createdAt: { type: String, required: true },
   user: { type: String, required: true },
   userId: { type: String, required: true },
-  profileImageUrl: { type: String, default: '' } // Campo para la imagen de perfil que se actualizará
+  profileImageUrl: { type: String, default: '' }
 });
 
 const Message = mongoose.model('Message', messageSchema);
