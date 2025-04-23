@@ -11,12 +11,11 @@ public interface UserRepository extends MongoRepository<User, String> {
     Optional<User> findByEmail(String email);
     Optional<User> findByUsername(String username);
 
-    // Consultas para acceder a fallaCode dentro de fallaInfo
     @Query("{'fallaInfo.fallaCode': ?0}")
     Optional<User> findByFallaInfo_FallaCode(String fallaCode);
 
     @Query("{'fallaInfo.fallaCode': ?0}")
-    List<User> findAllByFallaInfo_FallaCode(String fallaCode); // Para obtener todos los falleros
+    List<User> findAllByFallaInfo_FallaCode(String fallaCode);
 
-    List<User> findByPendienteUnionTrueAndCodigoFalla(String codigoFalla); // Solicitudes pendientes
+    List<User> findByPendienteUnionTrueAndCodigoFalla(String codigoFalla);
 }

@@ -22,7 +22,6 @@ public class Event {
     private String createdAt;
 
 
-    // Getters y setters
 
     public String getCreatorId() {
         return creatorId;

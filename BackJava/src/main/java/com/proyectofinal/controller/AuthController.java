@@ -61,7 +61,7 @@ public class AuthController {
                 response.put("profileImageUrl", user.getProfileImageUrl() != null ? user.getProfileImageUrl() : "");
                 response.put("role", user.getRole());
 
-                // ✅ Añadir según el rol
+                
                 if ("FALLA".equals(user.getRole()) && user.getFallaInfo() != null) {
                     response.put("fallaInfo", user.getFallaInfo());
                 } else if ("FALLERO".equals(user.getRole()) && user.getCodigoFalla() != null) {
@@ -100,7 +100,7 @@ public class AuthController {
             user.getRefreshTokens().removeIf(rt -> deviceId.equals(rt.getDeviceId()));
             user.getRefreshTokens().add(new RefreshTokenInfo(deviceId, newRefreshToken));
 
-            // Evitar duplicados por deviceId
+        
             Map<String, String> uniqueTokens = new HashMap<>();
             for (RefreshTokenInfo rt : user.getRefreshTokens()) {
                 uniqueTokens.put(rt.getDeviceId(), rt.getToken());
@@ -122,7 +122,7 @@ public class AuthController {
             response.put("profileImageUrl", user.getProfileImageUrl() != null ? user.getProfileImageUrl() : "");
             
 
-            // ✅ Añadir según el rol
+            
             if ("FALLA".equals(user.getRole()) && user.getFallaInfo() != null) {
                 response.put("fallaInfo", user.getFallaInfo());
             } else if ("FALLERO".equals(user.getRole()) && user.getCodigoFalla() != null) {

@@ -6,7 +6,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "fallaChats")
 public class FallaChat {
     @Id
-    private String fallaCode; // será el _id
+    private String fallaCode;
 
     private String creatorId;
     private String creatorName;

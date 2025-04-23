@@ -19,7 +19,6 @@ public class FallaChatController {
         return fallaChatRepository.findById(fallaCode)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> {
-                    // 🆕 Si no existe, creamos un chat vacío con el código de la falla
                     FallaChat nuevoChat = new FallaChat();
                     nuevoChat.setFallaCode(fallaCode);
                     fallaChatRepository.save(nuevoChat);

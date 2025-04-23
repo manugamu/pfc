@@ -76,19 +76,17 @@ public class UserController {
 
         String codigoFallaOriginal = newUser.getCodigoFalla();
 
-        // Validación del código
         if (codigoFallaOriginal != null && !codigoFallaOriginal.isEmpty()) {
             Optional<User> fallaOpt = userRepository.findByFallaInfo_FallaCode(codigoFallaOriginal);
             if (!fallaOpt.isPresent()) {
                 return ResponseEntity.badRequest().body("Código de falla inválido.");
             }
-            newUser.setPendienteUnion(true); // marcar como pendiente
+            newUser.setPendienteUnion(true); 
         }
 
-        // Guardamos el usuario
+
         User savedUser = userService.saveUser(newUser);
 
-        // Agregamos el ID a la lista de solicitudes pendientes de la falla
         if (codigoFallaOriginal != null && !codigoFallaOriginal.isEmpty()) {
             Optional<User> fallaOpt = userRepository.findByFallaInfo_FallaCode(codigoFallaOriginal);
             if (fallaOpt.isPresent()) {

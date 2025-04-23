@@ -24,10 +24,10 @@ public class User {
 
     private List<RefreshTokenInfo> refreshTokens = new ArrayList<>();
 
-    private FallaInfo fallaInfo;  // Solo si el usuario es FALLA o FALLERO
+    private FallaInfo fallaInfo;
 
-    private String codigoFalla; // Código que el usuario introduce para unirse
-    private boolean pendienteUnion = false; // Solicitud pendiente a una falla
+    private String codigoFalla;
+    private boolean pendienteUnion = false;
 
     public User() {}
 
@@ -43,7 +43,7 @@ public class User {
         this.active = active;
     }
 
-    // Getters y setters principales
+ 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -88,10 +88,9 @@ public class User {
 
   
     public static class FallaInfo {
-        private String fallaCode; // Código único de la falla (solo si el usuario es FALLA o FALLERO)
-        private List<String> falleroIds = new ArrayList<>(); // IDs de falleros (solo si el usuario es FALLA)
-        private List<String> pendingRequests = new ArrayList<>(); // IDs de usuarios solicitando unirse (solo si el usuario es FALLA)
-
+        private String fallaCode; 
+        private List<String> falleroIds = new ArrayList<>();
+        private List<String> pendingRequests = new ArrayList<>();
         public String getFallaCode() { return fallaCode; }
         public void setFallaCode(String fallaCode) { this.fallaCode = fallaCode; }
 

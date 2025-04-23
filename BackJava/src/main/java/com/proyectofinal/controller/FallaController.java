@@ -58,13 +58,13 @@ public class FallaController {
             User falla = fallaOpt.get();
             User usuario = userOpt.get();
 
-            // ✅ Actualizamos el usuario
+          
             usuario.setRole("FALLERO");
             usuario.setCodigoFalla(falla.getFallaInfo().getFallaCode());
             usuario.setPendienteUnion(false);
             userRepository.save(usuario);
 
-            // ✅ Actualizamos la falla
+          
             if (falla.getFallaInfo() != null) {
                 falla.getFallaInfo().getPendingRequests().remove(userId);
                 if (!falla.getFallaInfo().getFalleroIds().contains(userId)) {

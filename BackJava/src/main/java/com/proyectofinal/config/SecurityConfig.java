@@ -35,7 +35,7 @@ public class SecurityConfig {
         	    .requestMatchers("/api/users/register").permitAll()
         	    .requestMatchers("/api/users/profile-image/**").permitAll()
         	    .requestMatchers("/api/events", "/api/events/*").permitAll()
-        	    .requestMatchers("/api/falla/codigo/**").permitAll() // 👈 ESTA ES LA NUEVA LÍNEA
+        	    .requestMatchers("/api/falla/codigo/**").permitAll()
         	    .anyRequest().authenticated()
         	)
             .addFilterBefore(new JwtAuthFilter(jwtUtil, userRepository, redisService), UsernamePasswordAuthenticationFilter.class);
