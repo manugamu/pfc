@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import {
   Text, TextInput, StyleSheet, Alert, KeyboardAvoidingView,
   Platform, Animated, ScrollView, Keyboard, TouchableOpacity, useWindowDimensions
@@ -8,11 +8,13 @@ import LottieView from 'lottie-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getDeviceId } from '../services/deviceService';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
+import { AuthContext } from '../context/AuthContext';
 
-export default function LoginScreen({ navigation, setIsLoggedIn }) {
+export default function LoginScreen({ navigation }) {
+  const { setIsLoggedIn, setRole } = useContext(AuthContext);
+
   const { width, height } = useWindowDimensions();
   const baseSize = Math.min(width, height);
-
   const initialLogoHeight = baseSize * 0.45;
   const smallLogoHeight = baseSize * 0.22;
 
@@ -46,41 +48,40 @@ export default function LoginScreen({ navigation, setIsLoggedIn }) {
   const handleLogin = async () => {
     try {
       const deviceId = await getDeviceId();
-
+  
       const response = await fetch('http://10.0.2.2:5000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: username, password, deviceId }),
       });
-
+  
       if (response.ok) {
         const data = await response.json();
-
-        console.log('Respuesta del backend:', data);
-
+  
         if (!data.username) {
           Alert.alert('Error', 'El servidor no devolvió el username');
           return;
         }
-
+  
+       
         await EncryptedStorage.setItem('auth', JSON.stringify({
-          id: data.id, 
+          id: data.id,
           username: data.username,
           accessToken: data.accessToken,
           profileImageUrl: data.profileImageUrl,
           refreshToken: data.refreshToken,
-          role: data.role
+          role: data.role,
+          fallaInfo: data.fallaInfo,
+          codigoFalla: data.codigoFalla,
+          fullName: data.fullName
         }));
         
-
-        console.log('Guardado en EncryptedStorage:', {
-          accessToken: data.accessToken,
-          refreshToken: data.refreshToken,
-          username: data.username,
-          role: data.role
-        });
-
+  
+        const stored = await EncryptedStorage.getItem('auth');
+        console.log('🧠 Datos guardados en auth:', stored);
+  
         setIsLoggedIn(true);
+        setRole(data.role);
       } else {
         Alert.alert('Login fallido', 'Usuario o contraseña incorrectos');
       }
@@ -89,6 +90,7 @@ export default function LoginScreen({ navigation, setIsLoggedIn }) {
       Alert.alert('Error de red', 'No se pudo conectar al servidor');
     }
   };
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -175,7 +177,8 @@ const styles = StyleSheet.create({
   },
   fireAbsolute: {
     position: 'absolute',
-    zIndex: 0,
+    zIndex: -1,
+    pointerEvents: 'none',
   },
   logo: {
     width: '100%',

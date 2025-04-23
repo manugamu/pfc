@@ -1,4 +1,3 @@
-// index.js mejorado
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -9,13 +8,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Conexión MongoDB
 mongoose.connect('mongodb://localhost:27017/PF', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
-// Modelo de mensaje unificado (actualizado)
 const messageSchema = new mongoose.Schema({
   eventoId: { type: String, required: true },
   content: { type: String, required: true },
@@ -24,10 +21,8 @@ const messageSchema = new mongoose.Schema({
   userId: { type: String, required: true },
   profileImageUrl: { type: String, default: '' }
 });
-
 const Message = mongoose.model('Message', messageSchema);
 
-// Servidor HTTP + WebSocket
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
@@ -38,27 +33,24 @@ wss.on('connection', (ws) => {
     try {
       const parsed = JSON.parse(message);
 
-      // Cliente se une a un evento
       if (parsed.type === 'join') {
         ws.eventoId = parsed.eventoId;
         console.log(`🟢 Cliente unido a evento ${ws.eventoId} como ${parsed.user}`);
         return;
       }
 
-      // Si es un mensaje de chat, se valida y se almacena
       if (parsed.type === 'chat') {
         const { eventoId, user, content, createdAt, userId } = parsed;
-        if (!eventoId || !user || !content || !createdAt || !userId) {
-          console.warn('❌ Mensaje incompleto, no se guarda ni reenvía');
+
+        if (!eventoId || !user || !content?.trim() || !createdAt || !userId) {
+          console.warn('❌ Mensaje incompleto o vacío, ignorado');
           return;
         }
 
         console.log('📩 Mensaje recibido:', parsed);
 
-        // Guardar el mensaje en la BD (con la URL de imagen enviada en ese momento)
         const savedMessage = await Message.create(parsed);
 
-        // Reenviar solo a los clientes del mismo evento
         wss.clients.forEach((client) => {
           if (
             client.readyState === WebSocket.OPEN &&
@@ -78,10 +70,14 @@ wss.on('connection', (ws) => {
   });
 });
 
-// Endpoint para obtener el historial de mensajes de un evento
+
 app.get('/mensajes/:eventoId', async (req, res) => {
   try {
-    const mensajes = await Message.find({ eventoId: req.params.eventoId }).sort({ createdAt: 1 });
+    const mensajes = await Message.find({
+      eventoId: req.params.eventoId,
+      content: { $nin: [null, ''] }
+    }).sort({ createdAt: 1 });
+
     res.json(mensajes);
   } catch (err) {
     console.error('Error al obtener historial:', err);
@@ -89,22 +85,20 @@ app.get('/mensajes/:eventoId', async (req, res) => {
   }
 });
 
-// Nuevo endpoint: Actualización de la imagen de perfil en todos los mensajes de un usuario
 app.put('/api/chat/update-profile-image', async (req, res) => {
   const { userId, newProfileImageUrl } = req.body;
   try {
-    // Actualizar en masa los mensajes de ese usuario
     await Message.updateMany(
       { userId: userId },
       { $set: { profileImageUrl: newProfileImageUrl } }
     );
 
-    // Notificar a todos los clientes (a través de WS) que la imagen se ha actualizado
     const updateMsg = JSON.stringify({
       type: 'update_profile_image',
       userId,
       newProfileImageUrl
     });
+
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(updateMsg);
@@ -118,7 +112,16 @@ app.put('/api/chat/update-profile-image', async (req, res) => {
   }
 });
 
-// Endpoint de prueba
+app.post('/api/chat/create-room', (req, res) => {
+  const { fallaCode } = req.body;
+  if (!fallaCode) {
+    return res.status(400).json({ error: 'FallaCode requerido' });
+  }
+
+  console.log(`📦 Sala de chat privada creada para la falla: ${fallaCode}`);
+  res.status(201).json({ message: `Sala creada para falla ${fallaCode}` });
+});
+
 app.get('/', (req, res) => {
   res.send('Servidor de chat activo');
 });

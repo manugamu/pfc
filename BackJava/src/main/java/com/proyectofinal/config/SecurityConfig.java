@@ -30,13 +30,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/users/register").permitAll()
-                .requestMatchers("/api/users/profile-image/**").permitAll()
-                .requestMatchers("/api/events", "/api/events/*").permitAll() 
-                .anyRequest().authenticated()
-            )
+        .authorizeHttpRequests(auth -> auth
+        	    .requestMatchers("/api/auth/**").permitAll()
+        	    .requestMatchers("/api/users/register").permitAll()
+        	    .requestMatchers("/api/users/profile-image/**").permitAll()
+        	    .requestMatchers("/api/events", "/api/events/*").permitAll()
+        	    .requestMatchers("/api/falla/codigo/**").permitAll() // 👈 ESTA ES LA NUEVA LÍNEA
+        	    .anyRequest().authenticated()
+        	)
             .addFilterBefore(new JwtAuthFilter(jwtUtil, userRepository, redisService), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

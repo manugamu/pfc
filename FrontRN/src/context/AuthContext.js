@@ -1,42 +1,35 @@
 import React, { createContext, useState, useEffect } from 'react';
 import EncryptedStorage from 'react-native-encrypted-storage';
-import { isJwtExpired } from '../utils/jwtUtils';
-import { logoutUser } from '../services/authService';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  
-  const checkToken = async () => {
-    try {
-      const auth = await EncryptedStorage.getItem('auth');
-      if (!auth) {
-        setIsLoggedIn(false);
-        return;
-      }
-
-      const { accessToken } = JSON.parse(auth);
-      const expired = isJwtExpired(accessToken);
-      if (expired) {
-        await logoutUser();
-        setIsLoggedIn(false);
-      } else {
-        setIsLoggedIn(true);
-      }
-    } catch (err) {
-      console.error('Error validando token:', err);
-      setIsLoggedIn(false);
-    }
-  };
+  const [isLoggedIn, setIsLoggedIn] = useState(null); // null mientras no se sabe
+  const [role, setRole] = useState(null); // 👈 Añadido
 
   useEffect(() => {
-    checkToken();
+    const checkAuth = async () => {
+      try {
+        const authData = await EncryptedStorage.getItem('auth');
+        if (authData) {
+          const parsed = JSON.parse(authData);
+          setIsLoggedIn(!!parsed.accessToken);
+          setRole(parsed.role || null); // 👈 Establece role si existe
+        } else {
+          setIsLoggedIn(false);
+          setRole(null);
+        }
+      } catch (e) {
+        console.error('Error al validar sesión en AuthContext:', e);
+        setIsLoggedIn(false);
+        setRole(null);
+      }
+    };
+    checkAuth();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, setIsLoggedIn }}>
+    <AuthContext.Provider value={{ isLoggedIn, setIsLoggedIn, role, setRole }}>
       {children}
     </AuthContext.Provider>
   );

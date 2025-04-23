@@ -2,31 +2,31 @@ const WebSocket = require('ws');
 
 const socket = new WebSocket('ws://localhost:4000');
 
-// Datos del usuario (admin)
+
 const username = 'admin';
 const userId = '67e722c1b5b557622769bead';
-const eventoId = '67f65b514817b4601bd944eb'; // <- evento real
+const eventoId = '67f65b514817b4601bd944eb'; 
 const content = 'Hola chicos como estais';
 const createdAt = new Date().toISOString();
 
 socket.on('open', () => {
   console.log('✅ Conectado al servidor WebSocket');
 
-  // Mensaje de tipo join
+
   socket.send(JSON.stringify({
     type: 'join',
     username,
     eventoId
   }));
 
-  // Espera antes de enviar el mensaje
+ 
   setTimeout(() => {
     const message = {
       eventoId,
       content,
       createdAt,
       user: username,
-      userId, // ✅ Incluimos el ID del usuario
+      userId, 
     };
 
     socket.send(JSON.stringify(message));

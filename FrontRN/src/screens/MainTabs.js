@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useContext } from 'react';
 import { View, Text, Image } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
@@ -7,6 +7,9 @@ import EncryptedStorage from 'react-native-encrypted-storage';
 
 import ProfileScreen from './ProfileScreen';
 import HomeScreen from './HomeScreen';
+import PenyaFalleraScreen from './PenyaFalleraScreen';
+import { AuthContext } from '../context/AuthContext';
+import { getValidAccessToken } from '../services/authService';
 
 const Tab = createBottomTabNavigator();
 
@@ -17,30 +20,35 @@ const DummyScreen = ({ label }) => (
 );
 
 const SearchScreen = () => <DummyScreen label="Search" />;
-const MessagesScreen = () => <DummyScreen label="Messages" />;
 
-export default function MainTabs({ setIsLoggedIn }) {
+export default function MainTabs() {
+  const { setIsLoggedIn, role, setRole } = useContext(AuthContext);
   const [profileImageUrl, setProfileImageUrl] = useState(null);
 
-  const fetchProfileImage = async () => {
+  const fetchProfileData = async () => {
     try {
+      const token = await getValidAccessToken(null, setIsLoggedIn, setRole);
+      if (!token) return;
+
       const auth = await EncryptedStorage.getItem('auth');
       if (auth) {
         const parsed = JSON.parse(auth);
-        setProfileImageUrl(parsed.profileImageUrl && parsed.profileImageUrl.trim() !== '' ? parsed.profileImageUrl : null);
+        setProfileImageUrl(
+          parsed.profileImageUrl?.trim() !== '' ? parsed.profileImageUrl : null
+        );
       }
     } catch (error) {
-      console.error('❌ Error obteniendo imagen de perfil:', error);
+      console.error('❌ Error obteniendo datos de perfil:', error);
     }
   };
 
   useEffect(() => {
-    fetchProfileImage();
+    fetchProfileData();
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      fetchProfileImage();
+      fetchProfileData();
     }, [])
   );
 
@@ -70,6 +78,7 @@ export default function MainTabs({ setIsLoggedIn }) {
               />
             );
           }
+
           let iconName;
           switch (route.name) {
             case 'Home':
@@ -78,7 +87,7 @@ export default function MainTabs({ setIsLoggedIn }) {
             case 'Search':
               iconName = 'search-outline';
               break;
-            case 'Messages':
+            case 'Penya Fallera':
               iconName = 'chatbox-ellipses-outline';
               break;
             default:
@@ -88,20 +97,23 @@ export default function MainTabs({ setIsLoggedIn }) {
         }
       })}
     >
-      <Tab.Screen name="Home">
-        {(props) => <HomeScreen {...props} setIsLoggedIn={setIsLoggedIn} />}
-      </Tab.Screen>
+      <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Search" component={SearchScreen} />
-      <Tab.Screen name="Messages" component={MessagesScreen} />
-      <Tab.Screen name="Profile">
-        {(props) => (
+
+      {(role === 'FALLA' || role === 'FALLERO') && (
+        <Tab.Screen name="Penya Fallera" component={PenyaFalleraScreen} />
+      )}
+
+      <Tab.Screen
+        name="Profile"
+        children={(props) => (
           <ProfileScreen
             {...props}
-            setIsLoggedIn={setIsLoggedIn}
             setProfileImageUrl={setProfileImageUrl}
+            setIsLoggedIn={setIsLoggedIn}
           />
         )}
-      </Tab.Screen>
+      />
     </Tab.Navigator>
   );
 }

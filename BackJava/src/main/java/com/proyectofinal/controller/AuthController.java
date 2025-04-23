@@ -46,7 +46,6 @@ public class AuthController {
                 String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
                 String deviceId = loginRequest.getDeviceId();
 
-               
                 user.getRefreshTokens().removeIf(rt ->
                     deviceId.equals(rt.getDeviceId()) || rt.getToken().equals(refreshToken));
 
@@ -56,10 +55,18 @@ public class AuthController {
                 Map<String, Object> response = new HashMap<>();
                 response.put("id", user.getId());
                 response.put("username", user.getUsername());
+                response.put("fullName", user.getFullName());
                 response.put("accessToken", accessToken);
                 response.put("refreshToken", refreshToken);
                 response.put("profileImageUrl", user.getProfileImageUrl() != null ? user.getProfileImageUrl() : "");
                 response.put("role", user.getRole());
+
+                // ✅ Añadir según el rol
+                if ("FALLA".equals(user.getRole()) && user.getFallaInfo() != null) {
+                    response.put("fallaInfo", user.getFallaInfo());
+                } else if ("FALLERO".equals(user.getRole()) && user.getCodigoFalla() != null) {
+                    response.put("codigoFalla", user.getCodigoFalla());
+                }
 
                 return ResponseEntity.ok(response);
             }
@@ -67,6 +74,7 @@ public class AuthController {
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciales inválidas");
     }
+
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
@@ -89,13 +97,10 @@ public class AuthController {
             String newAccessToken = jwtUtil.generateToken(user.getEmail());
             String newRefreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
-         
             user.getRefreshTokens().removeIf(rt -> deviceId.equals(rt.getDeviceId()));
-
-       
             user.getRefreshTokens().add(new RefreshTokenInfo(deviceId, newRefreshToken));
 
-         
+            // Evitar duplicados por deviceId
             Map<String, String> uniqueTokens = new HashMap<>();
             for (RefreshTokenInfo rt : user.getRefreshTokens()) {
                 uniqueTokens.put(rt.getDeviceId(), rt.getToken());
@@ -115,6 +120,14 @@ public class AuthController {
             response.put("id", user.getId());
             response.put("role", user.getRole());
             response.put("profileImageUrl", user.getProfileImageUrl() != null ? user.getProfileImageUrl() : "");
+            
+
+            // ✅ Añadir según el rol
+            if ("FALLA".equals(user.getRole()) && user.getFallaInfo() != null) {
+                response.put("fallaInfo", user.getFallaInfo());
+            } else if ("FALLERO".equals(user.getRole()) && user.getCodigoFalla() != null) {
+                response.put("codigoFalla", user.getCodigoFalla());
+            }
 
             return ResponseEntity.ok(response);
         }

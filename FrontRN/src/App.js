@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -7,44 +8,48 @@ import LoginScreen from './screens/LoginScreen';
 import MainTabs from './screens/MainTabs';
 import EventoChatScreen from './screens/EventoChatScreen';
 import CrearEventoScreen from './screens/CrearEventoScreen';
+import SolicitudesFalla from './screens/SolicitudesFalla';
 
-import { validateStoredToken } from './services/authService'; 
+import { AuthProvider, AuthContext } from './context/AuthContext';
 
 const Stack = createNativeStackNavigator();
 
-export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(null);
+function AppNavigator() {
+  const { isLoggedIn } = useContext(AuthContext);
 
-  useEffect(() => {
-    const checkToken = async () => {
-      const isValid = await validateStoredToken(); 
-      setIsLoggedIn(isValid);
-    };
-    checkToken();
-  }, []);
-
-  if (isLoggedIn === null) return null;
+  if (isLoggedIn === null) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
+        <ActivityIndicator size="large" color="#fd882d" />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isLoggedIn ? (
           <>
-            <Stack.Screen name="MainTabs">
-              {(props) => <MainTabs {...props} setIsLoggedIn={setIsLoggedIn} />}
-            </Stack.Screen>
+            <Stack.Screen name="MainTabs" component={MainTabs} />
             <Stack.Screen name="EventoChatScreen" component={EventoChatScreen} />
             <Stack.Screen name="CrearEvento" component={CrearEventoScreen} />
+            <Stack.Screen name="SolicitudesFalla" component={SolicitudesFalla} />
           </>
         ) : (
           <>
-            <Stack.Screen name="Login">
-              {(props) => <LoginScreen {...props} setIsLoggedIn={setIsLoggedIn} />}
-            </Stack.Screen>
+            <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
           </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppNavigator />
+    </AuthProvider>
   );
 }

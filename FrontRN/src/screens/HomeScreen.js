@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -6,21 +6,85 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert
+  Alert,
+  Image
 } from 'react-native';
 import Evento from '../components/Eventos';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { getValidAccessToken, logoutUser } from '../services/authService';
+import { AuthContext } from '../context/AuthContext';
 import EncryptedStorage from 'react-native-encrypted-storage';
 
-export default function HomeScreen({ setIsLoggedIn }) {
+
+export default function HomeScreen() {
   const navigation = useNavigation();
+  const { setIsLoggedIn, role, userId } = useContext(AuthContext);
+
   const [eventos, setEventos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+  const [numSolicitudes, setNumSolicitudes] = useState(0);
 
+  const fetchEventos = async () => {
+    try {
+      const token = await getValidAccessToken(navigation, setIsLoggedIn);
+      if (!token) return;
+
+      const res = await fetch('http://10.0.2.2:5000/api/events', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        console.warn('🔐 Token revocado o inválido. Cerrando sesión...');
+        await logoutUser(navigation, setIsLoggedIn);
+        return;
+      }
+
+      if (!res.ok) throw new Error(`Error al cargar eventos: ${res.status}`);
+
+      const data = await res.json();
+      setEventos(data);
+    } catch (err) {
+      console.error('Error cargando eventos:', err);
+      Alert.alert('Error', 'No se pudieron cargar los eventos. Intenta más tarde.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const fetchSolicitudes = async () => {
+    try {
+      if (role !== 'FALLA') return;
+  
+      const token = await getValidAccessToken(navigation, setIsLoggedIn);
+      const auth = await EncryptedStorage.getItem('auth');
+      if (!token || !auth) {
+        console.log("🚫 Sin token o auth");
+        return;
+      }
+  
+      const { id: fallaId } = JSON.parse(auth);
+      console.log("🟡 Falla ID usado:", fallaId);
+  
+      const res = await fetch(`http://10.0.2.2:5000/api/falla/solicitudes/${fallaId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+  
+      if (res.ok) {
+        const data = await res.json();
+        console.log("🔔 Solicitudes recibidas:", data.length);
+        setNumSolicitudes(data.length);
+      } else {
+        console.warn("⚠️ Respuesta no OK al obtener solicitudes");
+        setNumSolicitudes(0);
+      }
+    } catch (err) {
+      console.error('❌ Error al obtener solicitudes:', err);
+      setNumSolicitudes(0);
+    }
+  };
   const handleEventoPress = (evento) => {
     navigation.navigate('EventoChatScreen', {
       eventoId: evento.id,
@@ -33,78 +97,59 @@ export default function HomeScreen({ setIsLoggedIn }) {
   };
 
   const handleCreateEvent = () => {
-    navigation.navigate('CrearEvento', {
-      setIsLoggedIn,
-    });
+    navigation.navigate('CrearEvento');
   };
 
-  const fetchEventos = async () => {
-    try {
-      const token = await getValidAccessToken(navigation);
-      if (!token) return;
-
-      const res = await fetch('http://10.0.2.2:5000/api/events', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (res.status === 401 || res.status === 403) {
-        console.warn('🔐 Token revocado o inválido. Cerrando sesión...');
-        await logoutUser(navigation);
-        setIsLoggedIn(false);
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error(`Error al cargar eventos: ${res.status}`);
-      }
-
-      const data = await res.json();
-      setEventos(data);
-    } catch (err) {
-      console.error('Error cargando eventos:', err);
-      Alert.alert('Error', 'No se pudieron cargar los eventos. Intenta más tarde.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false); 
-    }
+  const handleNotificaciones = () => {
+    navigation.navigate('SolicitudesFalla', {
+      onGoBack: fetchSolicitudes, 
+    });
   };
 
   const handleRefresh = () => {
     setRefreshing(true);
     fetchEventos();
+    fetchSolicitudes();
   };
 
   useEffect(() => {
+    fetchEventos();
+    fetchSolicitudes();
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      setLoading(true);
       fetchEventos();
+      fetchSolicitudes();
     });
     return unsubscribe;
   }, [navigation]);
-
-  useEffect(() => {
-    const getUserRole = async () => {
-      try {
-        const auth = await EncryptedStorage.getItem('auth');
-        if (auth) {
-          const parsed = JSON.parse(auth);
-          setUserRole(parsed.role);
-          console.log("🔐 Rol del usuario:", parsed.role);
-        }
-      } catch (err) {
-        console.error('Error obteniendo el rol del usuario:', err);
-      }
-    };
-    getUserRole();
-  }, []);
 
   return (
     <View style={styles.container}>
       <View style={styles.toolbar}>
         <Text style={styles.title}>Eventos</Text>
-        {userRole !== 'USER' && userRole !== 'USUARIO' && (
+        {role === 'FALLA' && (
+          <View style={styles.fallaButtons}>
+            <TouchableOpacity onPress={handleNotificaciones} style={styles.iconButton}>
+              <Image
+                source={require('../assets/images/fallero.png')}
+                style={styles.notificationIcon}
+              />
+              {console.log('🔢 numSolicitudes render:', numSolicitudes)}
+              {numSolicitudes > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{numSolicitudes}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={handleCreateEvent} style={styles.iconButton}>
+              <Icon name="add-circle-outline" size={28} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
+        {role !== 'FALLA' && role !== 'USER' && (
           <TouchableOpacity onPress={handleCreateEvent}>
             <Icon name="add-circle-outline" size={28} color="#fff" />
           </TouchableOpacity>
@@ -155,5 +200,36 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 30,
     fontSize: 16,
+  },
+  fallaButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  iconButton: {
+    marginLeft: 8,
+    position: 'relative',
+  },
+  notificationIcon: {
+    width: 28,
+    height: 28,
+    resizeMode: 'contain',
+  },
+  badge: {
+    position: 'absolute',
+    right: -6,
+    top: -6,
+    backgroundColor: 'lime', 
+    borderRadius: 10,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  badgeText: {
+    color: 'black',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });

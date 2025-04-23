@@ -2,6 +2,7 @@ package com.proyectofinal.model;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,33 +24,10 @@ public class User {
 
     private List<RefreshTokenInfo> refreshTokens = new ArrayList<>();
 
-    public static class RefreshTokenInfo {
-        private String deviceId;
-        private String token;
+    private FallaInfo fallaInfo;  // Solo si el usuario es FALLA o FALLERO
 
-        public RefreshTokenInfo() {}
-
-        public RefreshTokenInfo(String deviceId, String token) {
-            this.deviceId = deviceId;
-            this.token = token;
-        }
-
-        public String getDeviceId() {
-            return deviceId;
-        }
-
-        public void setDeviceId(String deviceId) {
-            this.deviceId = deviceId;
-        }
-
-        public String getToken() {
-            return token;
-        }
-
-        public void setToken(String token) {
-            this.token = token;
-        }
-    }
+    private String codigoFalla; // Código que el usuario introduce para unirse
+    private boolean pendienteUnion = false; // Solicitud pendiente a una falla
 
     public User() {}
 
@@ -65,7 +43,7 @@ public class User {
         this.active = active;
     }
 
-
+    // Getters y setters principales
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -93,14 +71,53 @@ public class User {
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
 
+    public String getProfileImageUrl() { return profileImageUrl; }
+    public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
+
     public List<RefreshTokenInfo> getRefreshTokens() { return refreshTokens; }
     public void setRefreshTokens(List<RefreshTokenInfo> refreshTokens) { this.refreshTokens = refreshTokens; }
 
-    public String getProfileImageUrl() {
-        return profileImageUrl;
+    public FallaInfo getFallaInfo() { return fallaInfo; }
+    public void setFallaInfo(FallaInfo fallaInfo) { this.fallaInfo = fallaInfo; }
+
+    public String getCodigoFalla() { return codigoFalla; }
+    public void setCodigoFalla(String codigoFalla) { this.codigoFalla = codigoFalla; }
+
+    public boolean isPendienteUnion() { return pendienteUnion; }
+    public void setPendienteUnion(boolean pendienteUnion) { this.pendienteUnion = pendienteUnion; }
+
+  
+    public static class FallaInfo {
+        private String fallaCode; // Código único de la falla (solo si el usuario es FALLA o FALLERO)
+        private List<String> falleroIds = new ArrayList<>(); // IDs de falleros (solo si el usuario es FALLA)
+        private List<String> pendingRequests = new ArrayList<>(); // IDs de usuarios solicitando unirse (solo si el usuario es FALLA)
+
+        public String getFallaCode() { return fallaCode; }
+        public void setFallaCode(String fallaCode) { this.fallaCode = fallaCode; }
+
+        public List<String> getFalleroIds() { return falleroIds; }
+        public void setFalleroIds(List<String> falleroIds) { this.falleroIds = falleroIds; }
+
+        public List<String> getPendingRequests() { return pendingRequests; }
+        public void setPendingRequests(List<String> pendingRequests) { this.pendingRequests = pendingRequests; }
     }
 
-    public void setProfileImageUrl(String profileImageUrl) {
-        this.profileImageUrl = profileImageUrl;
+
+    public static class RefreshTokenInfo {
+        private String deviceId;
+        private String token;
+
+        public RefreshTokenInfo() {}
+
+        public RefreshTokenInfo(String deviceId, String token) {
+            this.deviceId = deviceId;
+            this.token = token;
+        }
+
+        public String getDeviceId() { return deviceId; }
+        public void setDeviceId(String deviceId) { this.deviceId = deviceId; }
+
+        public String getToken() { return token; }
+        public void setToken(String token) { this.token = token; }
     }
 }

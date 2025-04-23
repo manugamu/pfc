@@ -17,7 +17,6 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
     }
@@ -31,4 +30,4 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
-}
+} 

@@ -1,23 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform
+  View, Text, TextInput, StyleSheet, TouchableOpacity, Alert,
+  FlatList, KeyboardAvoidingView, Platform
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import EncryptedStorage from 'react-native-encrypted-storage';
 import { useNavigation } from '@react-navigation/native';
+import { getValidAccessToken, logoutUser } from '../services/authService';
+import { AuthContext } from '../context/AuthContext';
 import calles from '../assets/calles/llistat-dels-carrers.json';
 
-export default function CrearEventoScreen({ route }) {
+export default function CrearEventoScreen() {
   const navigation = useNavigation();
-  const setIsLoggedIn = route.params?.setIsLoggedIn;
+  const { setIsLoggedIn } = useContext(AuthContext);
 
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
@@ -32,30 +27,19 @@ export default function CrearEventoScreen({ route }) {
   const [showEndPicker, setShowEndPicker] = useState(false);
 
   useEffect(() => {
-    const loadUser = async () => {
+    const loadUserFromStorage = async () => {
       try {
         const stored = await EncryptedStorage.getItem('auth');
         if (stored) {
           const parsed = JSON.parse(stored);
-          const token = parsed.accessToken;
-
-          const res = await fetch('http://10.0.2.2:5000/api/users/me', {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          if (res.ok) {
-            const userData = await res.json();
-            setCreatorId(userData.id);
-            setCreatorName(userData.username);
-          } else {
-            console.error('❌ Error al cargar info del usuario');
-          }
+          setCreatorId(parsed.id);
+          setCreatorName(parsed.username);
         }
       } catch (err) {
-        console.error('Error recuperando usuario:', err);
+        console.error('❌ Error obteniendo datos de usuario:', err);
       }
     };
-    loadUser();
+    loadUserFromStorage();
   }, []);
 
   const handleLocationInput = (text) => {
@@ -102,8 +86,8 @@ export default function CrearEventoScreen({ route }) {
     };
 
     try {
-      const auth = await EncryptedStorage.getItem('auth');
-      const token = JSON.parse(auth)?.accessToken;
+      const token = await getValidAccessToken(navigation, setIsLoggedIn);
+      if (!token) return;
 
       const response = await fetch('http://10.0.2.2:5000/api/events', {
         method: 'POST',
@@ -118,14 +102,12 @@ export default function CrearEventoScreen({ route }) {
         Alert.alert('✅ Evento creado correctamente');
         navigation.goBack();
       } else if (response.status === 401 || response.status === 403) {
-        Alert.alert('Sesión expirada', 'Tu sesión ha caducado o el token fue revocado.');
-        await EncryptedStorage.removeItem('auth');
-        if (setIsLoggedIn) setIsLoggedIn(false);
+        await logoutUser(navigation, setIsLoggedIn);
       } else {
         Alert.alert('❌ Error', `Código: ${response.status}`);
       }
     } catch (error) {
-      console.error('💥 Error:', error);
+      console.error('💥 Error al crear evento:', error);
       Alert.alert('❌ Error de red o del servidor');
     }
   };
@@ -217,10 +199,6 @@ export default function CrearEventoScreen({ route }) {
           value={description}
         />
 
-        <Text style={{ color: '#ccc', textAlign: 'center', marginVertical: 8 }}>
-          Usuario: {creatorName}
-        </Text>
-
         <TouchableOpacity style={styles.button} onPress={handleSubmit}>
           <Text style={styles.buttonText}>Crear</Text>
         </TouchableOpacity>
@@ -230,21 +208,9 @@ export default function CrearEventoScreen({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#121212',
-  },
-  inner: {
-    padding: 16,
-    flexGrow: 1,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
+  container: { flex: 1, backgroundColor: '#121212' },
+  inner: { padding: 16, flexGrow: 1 },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 16, textAlign: 'center' },
   input: {
     backgroundColor: '#2c2c2c',
     color: '#fff',
@@ -252,10 +218,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 12,
   },
-  textArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
+  textArea: { height: 100, textAlignVertical: 'top' },
   button: {
     backgroundColor: '#fd882d',
     padding: 14,
@@ -263,10 +226,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
   },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
+  buttonText: { color: '#fff', fontWeight: 'bold' },
   suggestionBox: {
     maxHeight: 200,
     backgroundColor: '#1e1e1e',

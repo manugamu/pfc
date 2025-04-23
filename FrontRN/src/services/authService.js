@@ -5,7 +5,7 @@ import { Alert } from 'react-native';
 let isRefreshing = false;
 let refreshPromise = null;
 
-export async function getValidAccessToken(navigation = null) {
+export async function getValidAccessToken(navigation = null, setIsLoggedIn = null, setRole = null) {
   const stored = await EncryptedStorage.getItem('auth');
   if (!stored) return null;
 
@@ -13,9 +13,7 @@ export async function getValidAccessToken(navigation = null) {
   const isExpired = isJwtExpired(accessToken);
   if (!isExpired) return accessToken;
 
-  if (isRefreshing) {
-    return refreshPromise;
-  }
+  if (isRefreshing) return refreshPromise;
 
   isRefreshing = true;
   refreshPromise = (async () => {
@@ -34,20 +32,36 @@ export async function getValidAccessToken(navigation = null) {
       if (!res.ok) throw new Error('Refresh token inválido');
 
       const data = await res.json();
-
-      const { accessToken: newAccessToken, refreshToken: newRefreshToken, username, profileImageUrl, id } = data;
-      await EncryptedStorage.setItem('auth', JSON.stringify({
+      const {
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
         username,
         profileImageUrl,
         id,
-      }));
+        role,
+        fallaInfo,
+        fullName
+      } = data;
 
+      await EncryptedStorage.setItem(
+        'auth',
+        JSON.stringify({
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
+          username,
+          profileImageUrl,
+          id,
+          role,
+          fallaInfo,
+          fullName
+        })
+      );
+
+      if (setRole) setRole(role);
       return newAccessToken;
     } catch (err) {
       console.error('Error renovando token:', err);
-      await logoutUser(navigation);
+      await logoutUser(navigation, setIsLoggedIn, setRole);
       return null;
     } finally {
       isRefreshing = false;
@@ -58,9 +72,9 @@ export async function getValidAccessToken(navigation = null) {
   return refreshPromise;
 }
 
-export async function validateStoredToken() {
+export async function validateStoredToken(setIsLoggedIn) {
   try {
-    const token = await getValidAccessToken();
+    const token = await getValidAccessToken(null, setIsLoggedIn);
     if (!token) return false;
 
     const res = await fetch('http://10.0.2.2:5000/api/users/me', {
@@ -75,16 +89,16 @@ export async function validateStoredToken() {
   }
 }
 
-export async function logoutUser(navigation = null) {
+export async function logoutUser(navigation = null, setIsLoggedIn = null, setRole = null) {
   try {
     await EncryptedStorage.removeItem('auth');
     console.log('🔒 Usuario desconectado: token eliminado');
+
+    if (setIsLoggedIn) setIsLoggedIn(false);
+    if (setRole) setRole(null);
+
     if (navigation) {
       Alert.alert('Sesión expirada', 'Por favor, inicia sesión de nuevo.');
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      });
     }
   } catch (e) {
     console.error('⚠️ Error eliminando token:', e);
