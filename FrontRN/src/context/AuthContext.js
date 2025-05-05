@@ -4,8 +4,8 @@ import EncryptedStorage from 'react-native-encrypted-storage';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(null); // null mientras no se sabe
-  const [role, setRole] = useState(null); // 👈 Añadido
+  const [isLoggedIn, setIsLoggedIn] = useState(null); 
+  const [role, setRole] = useState(null); 
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
         if (authData) {
           const parsed = JSON.parse(authData);
           setIsLoggedIn(!!parsed.accessToken);
-          setRole(parsed.role || null); // 👈 Establece role si existe
+          setRole(parsed.role || null); 
         } else {
           setIsLoggedIn(false);
           setRole(null);

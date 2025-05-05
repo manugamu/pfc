@@ -43,7 +43,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String email = jwtUtil.extractUsername(token);
         String jti = jwtUtil.extractJti(token);
 
-        // Verificar si el token ha sido revocado
         if (redisService.isTokenRevoked(jti)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;

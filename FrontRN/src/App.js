@@ -11,6 +11,7 @@ import CrearEventoScreen from './screens/CrearEventoScreen';
 import SolicitudesFalla from './screens/SolicitudesFalla';
 
 import { AuthProvider, AuthContext } from './context/AuthContext';
+import { BackgroundProvider } from './context/BackgroundContext';
 
 const Stack = createNativeStackNavigator();
 
@@ -49,7 +50,9 @@ function AppNavigator() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppNavigator />
+      <BackgroundProvider>
+        <AppNavigator />
+      </BackgroundProvider>
     </AuthProvider>
   );
 }

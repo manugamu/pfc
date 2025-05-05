@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getValidAccessToken } from '../services/authService';
+import { getValidAccessToken, logoutUser } from '../services/authService';
 import { AuthContext } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -52,7 +52,7 @@ export default function EventoChatScreen({ route, navigation }) {
       }
     };
     getUserInfo();
-  }, []);
+  }, [setIsLoggedIn]);
 
   useEffect(() => {
     if (flatListRef.current && messages.length > 0) {
@@ -62,14 +62,32 @@ export default function EventoChatScreen({ route, navigation }) {
 
   useEffect(() => {
     const fetchHistorial = async () => {
+      const token = await getValidAccessToken(null, setIsLoggedIn);
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+  
       const cacheKey = `mensajes_${eventoId}`;
       try {
-        const res = await fetch(`http://10.0.2.2:4000/mensajes/${eventoId}`);
+        const res = await fetch(`http://10.0.2.2:4000/mensajes/${eventoId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+  
+        if (res.status === 401 || res.status === 403) {
+          await logoutUser(null, setIsLoggedIn);
+          setLoading(false);
+          return;
+        }
+  
         if (!res.ok) throw new Error('Error de red');
+  
         const data = await res.json();
-        setMessages(data.filter(m => m.content && m.content.trim() !== ""));
-        await AsyncStorage.setItem(cacheKey, JSON.stringify(data));
-        const userIds = [...new Set(data.map(m => m.userId))];
+        const validMessages = data.filter(m => m.content && m.content.trim() !== '');
+        setMessages(validMessages);
+        await AsyncStorage.setItem(cacheKey, JSON.stringify(validMessages));
+  
+        const userIds = [...new Set(validMessages.map(m => m.userId))];
         userIds.forEach(fetchUserImage);
       } catch (err) {
         setIsConnected(false);
@@ -81,17 +99,22 @@ export default function EventoChatScreen({ route, navigation }) {
             const userIds = [...new Set(data.map(m => m.userId))];
             userIds.forEach(fetchUserImage);
           }
-        } catch { }
+        } catch {
+          console.warn("No se pudo leer caché local");
+        }
       } finally {
         setLoading(false);
       }
     };
-
+  
     if (eventoId && username && myUserId) {
       fetchHistorial();
+    } else {
+      const fallbackTimeout = setTimeout(() => setLoading(false), 5000);
+      return () => clearTimeout(fallbackTimeout);
     }
-  }, [eventoId, username, myUserId]);
-
+  }, [eventoId, username, myUserId, setIsLoggedIn]);
+  
   useEffect(() => {
     if (creatorImage) {
       setCreatorProfileImage(creatorImage);
@@ -113,8 +136,7 @@ export default function EventoChatScreen({ route, navigation }) {
       };
       fetchCreatorImage();
     }
-  }, [creatorId, creatorImage]);
-  
+  }, [creatorId, creatorImage, setIsLoggedIn]);
 
   const fetchUserImage = async (userId) => {
     if (!userId || userImages[userId]) return;
@@ -205,7 +227,6 @@ export default function EventoChatScreen({ route, navigation }) {
     setInput('');
   };
   
-
   const renderItem = ({ item }) => {
     const isOwn = item.userId === myUserId;
     const userColor = getColorForUser(item.user);
@@ -225,7 +246,7 @@ export default function EventoChatScreen({ route, navigation }) {
 
   if (!username || loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.loadingContainer}> 
         <ActivityIndicator size="large" color="#1E88E5" />
         <Text style={{ color: '#fff', marginTop: 10 }}>Cargando chat...</Text>
       </View>
@@ -243,7 +264,7 @@ export default function EventoChatScreen({ route, navigation }) {
           <View style={styles.headerOverlay} />
           {navigation && (
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Text style={styles.backArrow}>←</Text>
+               <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
           )}
           <View style={styles.headerContent}>
@@ -277,24 +298,23 @@ export default function EventoChatScreen({ route, navigation }) {
           </View>
         )}
 
-<View style={styles.inputRow}>
-<TextInput
-  value={input}
-  onChangeText={(text) => {
-    // Elimina todos los tabuladores y espacios del principio
-    const sanitized = text.replace(/^[\t ]+/, '');
-    setInput(sanitized);
-  }}
-  placeholder="Mensaje"
-  style={styles.flatInput}
-  placeholderTextColor="#ccc"
-  multiline
-/>
+        <View style={styles.inputRow}>
+          <TextInput
+            value={input}
+            onChangeText={(text) => {
+              const sanitized = text.replace(/^[\t ]+/, '');
+              setInput(sanitized);
+            }}
+            placeholder="Mensaje"
+            style={styles.flatInput}
+            placeholderTextColor="#ccc"
+            multiline
+          />
 
-  <TouchableOpacity onPress={sendMessage} style={styles.sendButtonClean}>
-    <Ionicons name="send" size={22} color="#1E88E5" />
-  </TouchableOpacity>
-</View>
+          <TouchableOpacity onPress={sendMessage} style={styles.sendButtonClean}>
+            <Ionicons name="send" size={22} color="#1E88E5" />
+          </TouchableOpacity>
+        </View>
 
       </SafeAreaView>
     </KeyboardAvoidingView>
@@ -302,7 +322,8 @@ export default function EventoChatScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212' },inputRow: {
+  container: { flex: 1, backgroundColor: '#121212' },
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 8,
@@ -341,10 +362,6 @@ const styles = StyleSheet.create({
   messageUser: { fontSize: 12, fontWeight: 'bold', marginBottom: 2 },
   messageText: { color: '#fff', fontSize: 14, lineHeight: 18 },
   userImage: { width: 36, height: 36, borderRadius: 18, marginRight: 8 },
-  inputContainer: { flexDirection: 'row', padding: 10, borderTopWidth: 1, borderTopColor: '#444', backgroundColor: '#1e1e1e' },
-  input: { flex: 1, backgroundColor: '#2c2c2c', borderRadius: 20, paddingHorizontal: 12, color: '#fff' },
-  sendButton: { justifyContent: 'center', paddingHorizontal: 16 },
-  sendText: { color: '#1E88E5', fontWeight: 'bold' },
   warningBanner: { backgroundColor: '#FFB300', padding: 6, alignItems: 'center' },
   warningText: { color: '#000', fontWeight: 'bold' },
 });

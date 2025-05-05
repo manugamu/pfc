@@ -9,6 +9,8 @@ import {
   Alert,
   ActivityIndicator
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { AuthContext } from '../context/AuthContext';
 import { getValidAccessToken, logoutUser } from '../services/authService';
 import EncryptedStorage from 'react-native-encrypted-storage';
@@ -26,10 +28,10 @@ export default function SolicitudesFalla({ navigation }) {
       const auth = await EncryptedStorage.getItem('auth');
       const { id: fallaId } = JSON.parse(auth);
 
-      const res = await fetch(`http://10.0.2.2:5000/api/falla/solicitudes/${fallaId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      const res = await fetch(
+        `http://10.0.2.2:5000/api/falla/solicitudes/${fallaId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       if (!res.ok) throw new Error('Error obteniendo solicitudes');
 
       const data = await res.json();
@@ -58,7 +60,6 @@ export default function SolicitudesFalla({ navigation }) {
         },
         body: JSON.stringify({ userId, fallaId })
       });
-
       if (!res.ok) throw new Error();
 
       Alert.alert('✅ Usuario aceptado');
@@ -85,7 +86,6 @@ export default function SolicitudesFalla({ navigation }) {
         },
         body: JSON.stringify({ userId, fallaId })
       });
-
       if (!res.ok) throw new Error();
 
       Alert.alert('🚫 Solicitud rechazada');
@@ -103,7 +103,11 @@ export default function SolicitudesFalla({ navigation }) {
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <Image
-        source={item.profileImageUrl ? { uri: item.profileImageUrl } : require('../assets/images/default-avatar.png')}
+        source={
+          item.profileImageUrl
+            ? { uri: item.profileImageUrl }
+            : require('../assets/images/default-avatar.png')
+        }
         style={styles.avatar}
       />
       <View style={styles.userInfo}>
@@ -111,10 +115,16 @@ export default function SolicitudesFalla({ navigation }) {
         <Text style={styles.fullName}>{item.fullName}</Text>
       </View>
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.aceptarBtn} onPress={() => aceptarUsuario(item.id)}>
+        <TouchableOpacity
+          style={styles.aceptarBtn}
+          onPress={() => aceptarUsuario(item.id)}
+        >
           <Text style={styles.aceptarText}>Aceptar</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.rechazarBtn} onPress={() => rechazarUsuario(item.id)}>
+        <TouchableOpacity
+          style={styles.rechazarBtn}
+          onPress={() => rechazarUsuario(item.id)}
+        >
           <Text style={styles.rechazarText}>Rechazar</Text>
         </TouchableOpacity>
       </View>
@@ -122,10 +132,19 @@ export default function SolicitudesFalla({ navigation }) {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Solicitudes de Unión</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Solicitudes de Unión</Text>
+      </View>
+
       {loading ? (
-        <ActivityIndicator size="large" color="#fff" />
+        <ActivityIndicator size="large" color="#fff" style={{ marginTop: 20 }} />
       ) : (
         <FlatList
           data={solicitudes}
@@ -134,7 +153,7 @@ export default function SolicitudesFalla({ navigation }) {
           contentContainerStyle={{ paddingBottom: 20 }}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -142,14 +161,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#121212',
-    padding: 16
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  backButton: {
+    marginRight: 12,
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 12,
-    textAlign: 'center'
   },
   card: {
     flexDirection: 'row',
@@ -157,49 +181,49 @@ const styles = StyleSheet.create({
     backgroundColor: '#1f1f1f',
     borderRadius: 10,
     padding: 10,
-    marginBottom: 12
+    marginHorizontal: 16,
+    marginVertical: 6,
   },
   avatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    marginRight: 12
+    marginRight: 12,
   },
   userInfo: {
-    flex: 1
+    flex: 1,
   },
   username: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 16
+    fontSize: 16,
   },
   fullName: {
     color: '#bbb',
-    fontSize: 14
+    fontSize: 14,
   },
   actions: {
     flexDirection: 'column',
-    gap: 8
   },
   aceptarBtn: {
     backgroundColor: '#4CAF50',
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 6,
-    marginBottom: 6
+    marginBottom: 6,
   },
   aceptarText: {
     color: '#fff',
-    fontWeight: 'bold'
+    fontWeight: 'bold',
   },
   rechazarBtn: {
     backgroundColor: '#f44336',
     paddingVertical: 6,
     paddingHorizontal: 14,
-    borderRadius: 6
+    borderRadius: 6,
   },
   rechazarText: {
     color: '#fff',
-    fontWeight: 'bold'
-  }
+    fontWeight: 'bold',
+  },
 });

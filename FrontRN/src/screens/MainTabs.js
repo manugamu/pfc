@@ -1,25 +1,18 @@
 import React, { useEffect, useState, useCallback, useContext } from 'react';
-import { View, Text, Image } from 'react-native';
+import { Image } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import EncryptedStorage from 'react-native-encrypted-storage';
 
-import ProfileScreen from './ProfileScreen';
 import HomeScreen from './HomeScreen';
+import BusquedaScreen from './BusquedaScreen';
 import PenyaFalleraScreen from './PenyaFalleraScreen';
+import ProfileScreen from './ProfileScreen';
 import { AuthContext } from '../context/AuthContext';
 import { getValidAccessToken } from '../services/authService';
 
 const Tab = createBottomTabNavigator();
-
-const DummyScreen = ({ label }) => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text style={{ fontSize: 24, fontWeight: 'bold' }}>{label}</Text>
-  </View>
-);
-
-const SearchScreen = () => <DummyScreen label="Search" />;
 
 export default function MainTabs() {
   const { setIsLoggedIn, role, setRole } = useContext(AuthContext);
@@ -38,7 +31,7 @@ export default function MainTabs() {
         );
       }
     } catch (error) {
-      console.error('❌ Error obteniendo datos de perfil:', error);
+      console.error('Error obteniendo datos de perfil:', error);
     }
   };
 
@@ -73,7 +66,7 @@ export default function MainTabs() {
                   height: size,
                   borderRadius: size / 2,
                   borderWidth: focused ? 2 : 0,
-                  borderColor: focused ? '#007aff' : 'transparent'
+                  borderColor: focused ? '#007aff' : 'transparent',
                 }}
               />
             );
@@ -94,11 +87,12 @@ export default function MainTabs() {
               iconName = 'ellipse';
           }
           return <Icon name={iconName} size={size} color={color} />;
-        }
+        },
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Search" component={SearchScreen} />
+
+      <Tab.Screen name="Search" component={BusquedaScreen} />
 
       {(role === 'FALLA' || role === 'FALLERO') && (
         <Tab.Screen name="Penya Fallera" component={PenyaFalleraScreen} />

@@ -20,7 +20,6 @@ public class SecurityConfig {
     private final UserRepository userRepository;
     private final RedisService redisService; 
 
-   
     public SecurityConfig(JwtUtil jwtUtil, UserRepository userRepository, RedisService redisService) {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
@@ -30,23 +29,24 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
-        .authorizeHttpRequests(auth -> auth
-        	    .requestMatchers("/api/auth/**").permitAll()
-        	    .requestMatchers("/api/users/register").permitAll()
-        	    .requestMatchers("/api/users/profile-image/**").permitAll()
-        	    .requestMatchers("/api/events", "/api/events/*").permitAll()
-        	    .requestMatchers("/api/falla/codigo/**").permitAll()
-        	    .anyRequest().authenticated()
-        	)
-            .addFilterBefore(new JwtAuthFilter(jwtUtil, userRepository, redisService), UsernamePasswordAuthenticationFilter.class);
+            .authorizeHttpRequests(auth -> auth
+              
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/users/register").permitAll()
+                .requestMatchers("/api/users/profile-image/**").permitAll()
+                .requestMatchers("/api/users/*").permitAll()
+                .requestMatchers("/api/events", "/api/events/*").permitAll()
+                .requestMatchers("/api/falla/codigo/**").permitAll()
+                .anyRequest().authenticated()
+            )
+            
+            .addFilterBefore(
+                new JwtAuthFilter(jwtUtil, userRepository, redisService),
+                UsernamePasswordAuthenticationFilter.class
+            );
 
         return http.build();
     }
-
-
-
-    
-    
 
     @Bean
     public PasswordEncoder passwordEncoder() {

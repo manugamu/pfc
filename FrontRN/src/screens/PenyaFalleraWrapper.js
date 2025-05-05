@@ -23,7 +23,7 @@ export default function PenyaChatWrapper() {
         const { username, id: userId, profileImageUrl, role, fallaInfo } = parsed;
 
         if (!fallaInfo?.fallaCode) {
-          console.error('❌ No hay código de falla disponible');
+          console.error('No hay código de falla disponible');
           return;
         }
 
@@ -36,7 +36,7 @@ export default function PenyaChatWrapper() {
           creatorId: userId,
         });
       } catch (err) {
-        console.error('❌ Error en PenyaChatWrapper:', err.message);
+        console.error('Error en PenyaChatWrapper:', err.message);
         await logoutUser(navigation, setIsLoggedIn);
       } finally {
         setLoading(false);

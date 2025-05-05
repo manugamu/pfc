@@ -2,8 +2,10 @@ package com.proyectofinal.model;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.index.Indexed;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
-
+import java.util.Date;
 
 @Document(collection = "events")
 public class Event {
@@ -13,24 +15,31 @@ public class Event {
     private String title;
     private String location;
     private String description;
-    private String imageUrl;       // Esto de momento es una URL falseada
+    private String imageUrl;     
     private String creatorName;
-    private String creatorImage;  
+    private String creatorImage;
     private String creatorId;
-    private String startDate;
-    private String endDate;
-    private String createdAt;
+    private String creatorRole;
 
+    public String getCreatorRole() {
+		return creatorRole;
+	}
 
+	public void setCreatorRole(String creatorRole) {
+		this.creatorRole = creatorRole;
+	}
 
-    public String getCreatorId() {
-        return creatorId;
-    }
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSX", timezone = "UTC")
+    private Date startDate;
 
-    public void setCreatorId(String creatorId) {
-        this.creatorId = creatorId;
-    }
-    
+   
+    @Indexed(name = "endDateTTL", expireAfterSeconds = 0)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSX", timezone = "UTC")
+    private Date endDate;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSX", timezone = "UTC")
+    private Date createdAt;
+
     public String getId() {
         return id;
     }
@@ -87,27 +96,35 @@ public class Event {
         this.creatorImage = creatorImage;
     }
 
-    public String getStartDate() {
+    public String getCreatorId() {
+        return creatorId;
+    }
+
+    public void setCreatorId(String creatorId) {
+        this.creatorId = creatorId;
+    }
+
+    public Date getStartDate() {
         return startDate;
     }
 
-    public void setStartDate(String startDate) {
+    public void setStartDate(Date startDate) {
         this.startDate = startDate;
     }
 
-    public String getEndDate() {
+    public Date getEndDate() {
         return endDate;
     }
 
-    public void setEndDate(String endDate) {
+    public void setEndDate(Date endDate) {
         this.endDate = endDate;
     }
 
-    public String getCreatedAt() {
+    public Date getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(String createdAt) {
+    public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
     }
 }

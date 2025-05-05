@@ -1,6 +1,7 @@
 package com.proyectofinal.controller;
 
 import com.proyectofinal.model.User;
+import com.proyectofinal.model.User.FallaInfo;
 import com.proyectofinal.repository.UserRepository;
 import com.proyectofinal.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,9 +12,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/users")
@@ -36,6 +35,43 @@ public class UserController {
         }
     }
 
+    @PostMapping("/register")
+    public ResponseEntity<String> register(@RequestBody User newUser) {
+        if (userService.findByEmail(newUser.getEmail()).isPresent()) {
+            return ResponseEntity.badRequest().body("El usuario ya existe");
+        }
+
+        newUser.setRole("USER");
+        newUser.setActive(true);
+
+        String codigoFallaOriginal = newUser.getCodigoFalla();
+        if (codigoFallaOriginal != null && !codigoFallaOriginal.isEmpty()) {
+            Optional<User> fallaOpt = userRepository.findByFallaInfo_FallaCode(codigoFallaOriginal);
+            if (!fallaOpt.isPresent()) {
+                return ResponseEntity.badRequest().body("Código de falla inválido.");
+            }
+            newUser.setPendienteUnion(true);
+        }
+
+        User savedUser = userService.saveUser(newUser);
+
+        if (codigoFallaOriginal != null && !codigoFallaOriginal.isEmpty()) {
+            Optional<User> fallaOpt = userRepository.findByFallaInfo_FallaCode(codigoFallaOriginal);
+            if (fallaOpt.isPresent()) {
+                User falla = fallaOpt.get();
+                FallaInfo fi = falla.getFallaInfo();
+                if (fi != null && !"".equals(fi.getFallaCode())) {
+                    if (!fi.getPendingRequests().contains(savedUser.getId())) {
+                        fi.getPendingRequests().add(savedUser.getId());
+                        userRepository.save(falla);
+                    }
+                }
+            }
+        }
+
+        return ResponseEntity.ok("Usuario registrado correctamente");
+    }
+
     @PutMapping("/profile-image")
     public ResponseEntity<?> updateProfileImage(@RequestBody Map<String, String> request, Authentication auth) {
         String email = auth.getName();
@@ -55,52 +91,52 @@ public class UserController {
 
                 String nodeChatUrl = "http://localhost:4000/api/chat/update-profile-image";
                 restTemplate.put(nodeChatUrl, payload);
-                System.out.println("Notificación de actualización enviada al servidor de chat.");
             } catch (Exception e) {
                 System.err.println("Error al notificar el cambio de imagen al servidor de chat: " + e.getMessage());
             }
+
             return ResponseEntity.ok("Foto de perfil actualizada");
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado");
         }
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody User newUser) {
-        if (userService.findByEmail(newUser.getEmail()).isPresent()) {
-            return ResponseEntity.badRequest().body("El usuario ya existe");
+
+    @PutMapping("/solicitar-union")
+    public ResponseEntity<?> solicitarUnion(@RequestBody Map<String, String> body, Authentication auth) {
+        String codigo = body.get("codigoFalla");
+        if (codigo == null || codigo.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Falta código de falla");
         }
 
-        newUser.setRole("USER");
-        newUser.setActive(true);
+        String email = auth.getName();
+        Optional<User> userOpt = userService.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Usuario no encontrado");
+        }
+        User usuario = userOpt.get();
 
-        String codigoFallaOriginal = newUser.getCodigoFalla();
+        Optional<User> fallaOpt = userRepository.findByFallaInfo_FallaCode(codigo);
+        if (fallaOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Falla no encontrada");
+        }
+        User falla = fallaOpt.get();
 
-        if (codigoFallaOriginal != null && !codigoFallaOriginal.isEmpty()) {
-            Optional<User> fallaOpt = userRepository.findByFallaInfo_FallaCode(codigoFallaOriginal);
-            if (!fallaOpt.isPresent()) {
-                return ResponseEntity.badRequest().body("Código de falla inválido.");
+        usuario.setCodigoFalla(codigo);
+        usuario.setPendienteUnion(true);
+        userRepository.save(usuario);
+
+        FallaInfo fi = falla.getFallaInfo();
+        if (fi != null) {
+            List<String> requests = fi.getPendingRequests();
+            if (!requests.contains(usuario.getId())) {
+                requests.add(usuario.getId());
+                falla.setFallaInfo(fi);
+                userRepository.save(falla);
             }
-            newUser.setPendienteUnion(true); 
         }
 
-
-        User savedUser = userService.saveUser(newUser);
-
-        if (codigoFallaOriginal != null && !codigoFallaOriginal.isEmpty()) {
-            Optional<User> fallaOpt = userRepository.findByFallaInfo_FallaCode(codigoFallaOriginal);
-            if (fallaOpt.isPresent()) {
-                User falla = fallaOpt.get();
-                if ("FALLA".equals(falla.getRole()) && falla.getFallaInfo() != null) {
-                    if (!falla.getFallaInfo().getPendingRequests().contains(savedUser.getId())) {
-                        falla.getFallaInfo().getPendingRequests().add(savedUser.getId());
-                        userRepository.save(falla);
-                    }
-                }
-            }
-        }
-
-        return ResponseEntity.ok("Usuario registrado correctamente");
+        return ResponseEntity.ok("Solicitud de unión enviada correctamente");
     }
 
     @GetMapping("/profile-image/{userId}")
@@ -130,9 +166,13 @@ public class UserController {
         Optional<User> userOpt = userRepository.findById(id);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            Map<String, String> response = new HashMap<>();
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", user.getId());
             response.put("username", user.getUsername());
             response.put("profileImageUrl", user.getProfileImageUrl());
+            response.put("role", user.getRole());
+            response.put("fallaInfo", user.getFallaInfo());
+            response.put("codigoFalla", user.getCodigoFalla());
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(404).body("Usuario no encontrado");
@@ -150,9 +190,40 @@ public class UserController {
             data.put("username", user.getUsername());
             data.put("email", user.getEmail());
             data.put("profileImageUrl", user.getProfileImageUrl());
+            data.put("role", user.getRole());
+            data.put("fallaInfo", user.getFallaInfo());
+            data.put("codigoFalla", user.getCodigoFalla());
+            data.put("pendienteUnion", user.isPendienteUnion());
+            data.put("fullName", user.getFullName());// ← nuevo
             return ResponseEntity.ok(data);
         } else {
             return ResponseEntity.status(404).body("Usuario no encontrado");
         }
     }
+    
+    
+    @PostMapping("/cancelar-union")
+    public ResponseEntity<?> cancelUnionRequest(Authentication auth) {
+        String email = auth.getName();
+        Optional<User> userOpt = userService.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado");
+        }
+        User user = userOpt.get();
+        if (!user.isPendienteUnion()) {
+            return ResponseEntity.badRequest().body("No hay solicitud pendiente");
+        }
+        String codigoFalla = user.getCodigoFalla();
+        userRepository.findByFallaInfo_FallaCode(codigoFalla).ifPresent(falla -> {
+            falla.getFallaInfo().getPendingRequests().removeIf(id -> id.equals(user.getId()));
+            userRepository.save(falla);
+        });
+
+        user.setPendienteUnion(false);
+        user.setCodigoFalla(null);
+        userRepository.save(user);
+
+        return ResponseEntity.ok("Solicitud cancelada");
+    }
+    
 }

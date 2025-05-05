@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Alert } from 'react-native';
 import EncryptedStorage from 'react-native-encrypted-storage';
 import EventoChatScreen from './EventoChatScreen';
 import { AuthContext } from '../context/AuthContext';
@@ -21,7 +21,7 @@ export default function PenyaFalleraScreen({ navigation }) {
           parsed?.fallaInfo?.fallaCode || parsed?.codigoFalla || null;
 
         if (!code) {
-          console.warn('⚠️ Usuario aún no tiene código de falla');
+          console.warn('Usuario aún no tiene código de falla');
           return;
         }
 
@@ -37,52 +37,49 @@ export default function PenyaFalleraScreen({ navigation }) {
   useEffect(() => {
     if (!codigoFalla) return;
 
+    let didCancel = false;
+
     const fetchFalla = async () => {
       try {
         const token = await getValidAccessToken(navigation, setIsLoggedIn);
-        if (!token) {
-          console.error('❌ No se pudo obtener token válido');
-          return;
-        }
+        if (!token || didCancel) return;
 
         const res = await fetch(`http://10.0.2.2:5000/api/falla/codigo/${codigoFalla}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+          headers: { Authorization: `Bearer ${token}` }
         });
 
         if (!res.ok) {
-          console.error('❌ No se pudo cargar info de la falla');
+          console.error('No se pudo cargar info de la falla');
           return;
         }
 
         const fallaInfo = await res.json();
-
         const authData = await EncryptedStorage.getItem('auth');
         const parsed = JSON.parse(authData);
 
-        console.log('📸 Image fallback:', fallaInfo?.profileImageUrl);
-        console.log('📦 EventData:', {
-          eventoId: codigoFalla,
-          title: fallaInfo?.fullname,
-          creatorImage: fallaInfo?.profileImageUrl
-        });
-
-        setEventData({
-          eventoId: codigoFalla,
-          title: fallaInfo.fullname,
-          backgroundImage: '',
-          creatorId: parsed.id,
-          creatorName: fallaInfo.username,
-          creatorImage: fallaInfo.profileImageUrl || null
-        });
+        if (!didCancel) {
+          setEventData({
+            eventoId: codigoFalla,
+            title: fallaInfo.fullname || 'Penya Fallera',
+            backgroundImage: '',
+            creatorId: parsed.id,
+            creatorName: fallaInfo.username,
+            creatorImage: fallaInfo.profileImageUrl || null
+          });
+        }
       } catch (err) {
-        console.error('Error al cargar info de la falla:', err);
+        if (!didCancel) {
+          console.error('Error al cargar info de la falla:', err);
+        }
       }
     };
 
     fetchFalla();
-  }, [codigoFalla]);
+
+    return () => {
+      didCancel = true;
+    };
+  }, [codigoFalla, navigation, setIsLoggedIn]);
 
   if (!eventData) {
     return (

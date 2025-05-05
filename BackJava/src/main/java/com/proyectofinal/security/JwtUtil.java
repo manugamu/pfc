@@ -24,8 +24,8 @@ public class JwtUtil {
         return Jwts.builder()
             .setSubject(email)
             .setIssuedAt(new Date(now))
-            .setExpiration(new Date(now + 1000 * 60 * 2)) // 15 minutos
-            .setId(UUID.randomUUID().toString()) // jti
+            .setExpiration(new Date(now + 1000 * 60 * 1)) // 1 minuto
+            .setId(UUID.randomUUID().toString()) 
             .signWith(getSigningKey(), SignatureAlgorithm.HS256)
             .compact();
     }
@@ -36,7 +36,7 @@ public class JwtUtil {
             .setSubject(email)
             .setIssuedAt(new Date(now))
             .setExpiration(new Date(now + 1000 * 60 * 60 * 24 * 7)) // 7 días
-            .setId(UUID.randomUUID().toString()) // jti
+            .setId(UUID.randomUUID().toString())
             .signWith(getSigningKey(), SignatureAlgorithm.HS256)
             .compact();
     }

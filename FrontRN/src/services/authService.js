@@ -40,6 +40,7 @@ export async function getValidAccessToken(navigation = null, setIsLoggedIn = nul
         id,
         role,
         fallaInfo,
+        codigoFalla,
         fullName
       } = data;
 
@@ -53,6 +54,7 @@ export async function getValidAccessToken(navigation = null, setIsLoggedIn = nul
           id,
           role,
           fallaInfo,
+          codigoFalla,
           fullName
         })
       );
