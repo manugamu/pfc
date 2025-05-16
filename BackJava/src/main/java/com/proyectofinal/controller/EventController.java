@@ -82,4 +82,45 @@ public class EventController {
             return ResponseEntity.notFound().build();
         }
     }
+    
+    
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateEvent(@PathVariable String id, @RequestBody Event updatedEvent, Authentication auth) {
+        try {
+            String email = auth.getName();
+            Optional<User> userOpt = userRepository.findByEmail(email);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Usuario no encontrado");
+            }
+
+            Optional<Event> existingOpt = eventRepository.findById(id);
+            if (existingOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Evento no encontrado");
+            }
+
+            Event existingEvent = existingOpt.get();
+            User user = userOpt.get();
+
+            // Solo puede editar si es el creador
+            if (!existingEvent.getCreatorId().equals(user.getId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("No tienes permisos para editar este evento");
+            }
+
+            // Actualizar campos editables
+            existingEvent.setTitle(updatedEvent.getTitle());
+            existingEvent.setDescription(updatedEvent.getDescription());
+            existingEvent.setLocation(updatedEvent.getLocation());
+            existingEvent.setStartDate(updatedEvent.getStartDate());
+            existingEvent.setEndDate(updatedEvent.getEndDate());
+            existingEvent.setImageUrl(updatedEvent.getImageUrl());
+
+            Event saved = eventRepository.save(existingEvent);
+            return ResponseEntity.ok(saved);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al actualizar evento: " + e.getMessage());
+        }
+    }
 }

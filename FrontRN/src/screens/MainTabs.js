@@ -2,8 +2,10 @@ import React, { useEffect, useState, useCallback, useContext } from 'react';
 import { Image } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/Ionicons';
+import Icon from 'react-native-vector-icons/FontAwesome6';
 import EncryptedStorage from 'react-native-encrypted-storage';
+import { Dimensions } from 'react-native';
+
 
 import HomeScreen from './HomeScreen';
 import BusquedaScreen from './BusquedaScreen';
@@ -45,61 +47,76 @@ export default function MainTabs() {
     }, [])
   );
 
+  const screenWidth = Dimensions.get('window').width;
+  const iconSize = screenWidth * 0.04; // ajusta este factor si lo quieres más o menos pequeño
+
+
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: '#007aff',
-        tabBarInactiveTintColor: '#8e8e93',
-        tabBarStyle: { paddingVertical: 8, height: 60 },
-        tabBarIcon: ({ color, size, focused }) => {
-          if (route.name === 'Profile') {
-            return (
-              <Image
-                source={
-                  profileImageUrl
-                    ? { uri: profileImageUrl }
-                    : require('../assets/images/default-avatar.png')
-                }
-                style={{
-                  width: size,
-                  height: size,
-                  borderRadius: size / 2,
-                  borderWidth: focused ? 2 : 0,
-                  borderColor: focused ? '#007aff' : 'transparent',
-                }}
-              />
-            );
-          }
+  screenOptions={({ route }) => {
+    const screenWidth = Dimensions.get('window').width;
+    const iconSize = screenWidth * 0.043;
 
-          let iconName;
-          switch (route.name) {
-            case 'Home':
-              iconName = 'home-outline';
-              break;
-            case 'Search':
-              iconName = 'search-outline';
-              break;
-            case 'Penya Fallera':
-              iconName = 'chatbox-ellipses-outline';
-              break;
-            default:
-              iconName = 'ellipse';
-          }
-          return <Icon name={iconName} size={size} color={color} />;
-        },
-      })}
-    >
-      <Tab.Screen name="Home" component={HomeScreen} />
+    return {
+      headerShown: false,
+      tabBarActiveTintColor: 'tomato',
+      tabBarInactiveTintColor: 'grey',
+      tabBarStyle: {
+        paddingVertical: 8,
+        height: 60,
+        backgroundColor: 'black',
+      },
+      tabBarIcon: ({ color, focused }) => {
+        if (route.name === 'Perfil') {
+          return (
+            <Image
+              source={
+                profileImageUrl
+                  ? { uri: profileImageUrl }
+                  : require('../assets/images/default-avatar.png')
+              }
+              style={{
+                width: iconSize,
+                height: iconSize,
+                borderRadius: iconSize / 2,
+                borderWidth: focused ? 2 : 0,
+                borderColor: focused ? 'tomato' : 'transparent',
+              }}
+            />
+          );
+        }
 
-      <Tab.Screen name="Search" component={BusquedaScreen} />
+        let iconName;
+        switch (route.name) {
+          case 'Eventos':
+            iconName = 'house';
+            break;
+          case 'Busquedas':
+            iconName = 'magnifying-glass';
+            break;
+          case 'Penya Fallera':
+            iconName = 'comment-dots';
+            break;
+          default:
+            iconName = 'circle';
+        }
+
+        return <Icon name={iconName} size={iconSize} color={color} />;
+      },
+    };
+  }}
+>
+
+      <Tab.Screen name="Eventos" component={HomeScreen} />
+
+      <Tab.Screen name="Busquedas" component={BusquedaScreen} />
 
       {(role === 'FALLA' || role === 'FALLERO') && (
         <Tab.Screen name="Penya Fallera" component={PenyaFalleraScreen} />
       )}
 
       <Tab.Screen
-        name="Profile"
+        name="Perfil"
         children={(props) => (
           <ProfileScreen
             {...props}

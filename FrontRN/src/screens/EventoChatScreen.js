@@ -67,26 +67,26 @@ export default function EventoChatScreen({ route, navigation }) {
         setLoading(false);
         return;
       }
-  
+
       const cacheKey = `mensajes_${eventoId}`;
       try {
         const res = await fetch(`http://10.0.2.2:4000/mensajes/${eventoId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-  
+
         if (res.status === 401 || res.status === 403) {
           await logoutUser(null, setIsLoggedIn);
           setLoading(false);
           return;
         }
-  
+
         if (!res.ok) throw new Error('Error de red');
-  
+
         const data = await res.json();
         const validMessages = data.filter(m => m.content && m.content.trim() !== '');
         setMessages(validMessages);
         await AsyncStorage.setItem(cacheKey, JSON.stringify(validMessages));
-  
+
         const userIds = [...new Set(validMessages.map(m => m.userId))];
         userIds.forEach(fetchUserImage);
       } catch (err) {
@@ -106,7 +106,7 @@ export default function EventoChatScreen({ route, navigation }) {
         setLoading(false);
       }
     };
-  
+
     if (eventoId && username && myUserId) {
       fetchHistorial();
     } else {
@@ -114,7 +114,7 @@ export default function EventoChatScreen({ route, navigation }) {
       return () => clearTimeout(fallbackTimeout);
     }
   }, [eventoId, username, myUserId, setIsLoggedIn]);
-  
+
   useEffect(() => {
     if (creatorImage) {
       setCreatorProfileImage(creatorImage);
@@ -202,9 +202,9 @@ export default function EventoChatScreen({ route, navigation }) {
 
   const sendMessage = () => {
     const cleanInput = input.trim();
-  
+
     if (!cleanInput || !username || !myUserId) return;
-  
+
     const msg = {
       type: 'chat',
       eventoId,
@@ -214,19 +214,19 @@ export default function EventoChatScreen({ route, navigation }) {
       userId: myUserId,
       localOnly: !isConnected
     };
-  
+
     setMessages((prev) => [...prev, msg]);
-  
+
     if (ws.current?.readyState === WebSocket.OPEN) {
       const { localOnly, ...cleanMsg } = msg;
       ws.current.send(JSON.stringify(cleanMsg));
     } else {
       setPendingMessages((prev) => [...prev, msg]);
     }
-  
+
     setInput('');
   };
-  
+
   const renderItem = ({ item }) => {
     const isOwn = item.userId === myUserId;
     const userColor = getColorForUser(item.user);
@@ -254,11 +254,12 @@ export default function EventoChatScreen({ route, navigation }) {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior="padding"
+        keyboardVerticalOffset={0}
+      >
         <View style={styles.header}>
           <Image source={backgroundImage ? { uri: backgroundImage } : require('../assets/images/default-event.jpg')} style={styles.headerBackground} resizeMode="cover" />
           <View style={styles.headerOverlay} />
@@ -315,11 +316,12 @@ export default function EventoChatScreen({ route, navigation }) {
             <Ionicons name="send" size={22} color="#1E88E5" />
           </TouchableOpacity>
         </View>
-
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
+
+// ...mantén aquí el resto de tus estilos sin cambio.
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212' },

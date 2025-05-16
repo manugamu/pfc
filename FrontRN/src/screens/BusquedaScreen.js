@@ -1,20 +1,24 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
   ImageBackground,
+  Modal,
+  RefreshControl,
+  FlatList,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { Calendar } from 'react-native-calendars';
+import moment from 'moment';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { AuthContext } from '../context/AuthContext';
 import { getValidAccessToken, logoutUser } from '../services/authService';
 import Evento from '../components/Eventos';
 import { useBackground } from '../context/BackgroundContext';
+import EncryptedStorage from 'react-native-encrypted-storage';
 
 export default function BusquedasScreen() {
   const navigation = useNavigation();
@@ -25,45 +29,50 @@ export default function BusquedasScreen() {
   const [filtered, setFiltered] = useState([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [miId, setMiId] = useState(null);
 
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
-  const [startDateFilter, setStartDateFilter] = useState(null);
-  const [endDateFilter, setEndDateFilter] = useState(null);
+  const [calendarVisible, setCalendarVisible] = useState(false);
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
+  const [markedDates, setMarkedDates] = useState({});
+
+  const fetchEvents = useCallback(async () => {
+    try {
+      const auth = await EncryptedStorage.getItem('auth');
+      if (auth) {
+        const parsed = JSON.parse(auth);
+        setMiId(parsed.id);
+      }
+      const token = await getValidAccessToken(navigation, setIsLoggedIn);
+      if (!token) return;
+      const res = await fetch('http://10.0.2.2:5000/api/events', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 401 || res.status === 403) {
+        await logoutUser(navigation, setIsLoggedIn);
+        return;
+      }
+      const data = await res.json();
+      setEvents(data);
+    } catch (err) {
+      console.error('Error cargando eventos:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [navigation, setIsLoggedIn]);
 
   useFocusEffect(
-    React.useCallback(() => {
-      return () => {
-        setQuery('');
-        setStartDateFilter(null);
-        setEndDateFilter(null);
-      };
-    }, [])
+    useCallback(() => {
+      setRefreshing(true);
+      fetchEvents();
+    }, [fetchEvents])
   );
 
   useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const token = await getValidAccessToken(navigation, setIsLoggedIn);
-        if (!token) return;
-        const res = await fetch('http://10.0.2.2:5000/api/events', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.status === 401 || res.status === 403) {
-          await logoutUser(navigation, setIsLoggedIn);
-          return;
-        }
-        const data = await res.json();
-        setEvents(data);
-        setFiltered(data);
-      } catch (err) {
-        console.error('Error cargando eventos:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchEvents();
-  }, [navigation, setIsLoggedIn]);
+  }, [fetchEvents]);
 
   useEffect(() => {
     let list = [...events];
@@ -76,8 +85,8 @@ export default function BusquedasScreen() {
         (e.creatorName && e.creatorName.toLowerCase().includes(q))
       );
     }
-    if (startDateFilter) list = list.filter(e => new Date(e.startDate) >= startDateFilter);
-    if (endDateFilter) list = list.filter(e => new Date(e.endDate) <= endDateFilter);
+    if (startDateFilter) list = list.filter(e => moment(e.startDate).isSameOrAfter(startDateFilter));
+    if (endDateFilter) list = list.filter(e => moment(e.endDate).isSameOrBefore(endDateFilter));
     setFiltered(list);
   }, [query, startDateFilter, endDateFilter, events]);
 
@@ -94,8 +103,9 @@ export default function BusquedasScreen() {
 
   const clearFilters = () => {
     setQuery('');
-    setStartDateFilter(null);
-    setEndDateFilter(null);
+    setStartDateFilter('');
+    setEndDateFilter('');
+    setMarkedDates({});
   };
 
   if (loading) {
@@ -129,58 +139,111 @@ export default function BusquedasScreen() {
         </View>
 
         <View style={styles.dateRow}>
-          <TouchableOpacity style={styles.input} onPress={() => setShowStartPicker(true)}>
+          <TouchableOpacity style={styles.input} onPress={() => setCalendarVisible(true)}>
             <Text style={styles.inputText}>
-              {startDateFilter ? startDateFilter.toLocaleDateString() : 'Desde'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.input} onPress={() => setShowEndPicker(true)}>
-            <Text style={styles.inputText}>
-              {endDateFilter ? endDateFilter.toLocaleDateString() : 'Hasta'}
+              {startDateFilter && endDateFilter
+                ? `Del ${moment(startDateFilter).format('DD/MM/YYYY')} al ${moment(endDateFilter).format('DD/MM/YYYY')}`
+                : 'Filtrar por rango de fechas'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {showStartPicker && (
-          <DateTimePicker
-            value={startDateFilter || new Date()}
-            mode="date"
-            display="default"
-            onChange={(_, date) => {
-              setShowStartPicker(false);
-              if (date) setStartDateFilter(date);
-            }}
-          />
-        )}
-        {showEndPicker && (
-          <DateTimePicker
-            value={endDateFilter || new Date()}
-            mode="date"
-            display="default"
-            onChange={(_, date) => {
-              setShowEndPicker(false);
-              if (date) setEndDateFilter(date);
-            }}
-          />
-        )}
-
-        {filtered.length === 0 ? (
-          <View style={styles.center}>
-            <Text style={styles.noResults}>No se encontraron eventos</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={filtered}
-            keyExtractor={item => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => handlePress(item)} activeOpacity={0.8}>
-                <Evento {...item} backgroundImage={item.imageUrl} onPress={() => handlePress(item)} />
-              </TouchableOpacity>
-            )}
-            contentContainerStyle={styles.list}
-          />
-        )}
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 24 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                fetchEvents();
+              }}
+              colors={['#fd882d']}
+              tintColor="#fd882d"
+            />
+          }
+          ListEmptyComponent={() => (
+            <View style={styles.center}>
+              <Text style={styles.noResults}>No se encontraron eventos</Text>
+            </View>
+          )}
+          renderItem={({ item }) => (
+            <View style={{ width: '100%', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ width: '100%' }}>
+                <Evento
+                  {...item}
+                  backgroundImage={item.imageUrl}
+                  onPress={() => handlePress(item)}
+                  miId={miId}
+                  refreshEventos={fetchEvents}
+                />
+              </View>
+            </View>
+          )}
+        />
       </View>
+
+      <Modal visible={calendarVisible} animationType="slide">
+        <View style={{ flex: 1, backgroundColor: '#121212', padding: 16 }}>
+          <Calendar
+            markingType={'period'}
+            markedDates={markedDates}
+            onDayPress={(date) => {
+              let selected = moment(date.dateString);
+              if (!startDateFilter || (startDateFilter && endDateFilter)) {
+                setStartDateFilter(selected.format('YYYY-MM-DD'));
+                setEndDateFilter('');
+                setMarkedDates({
+                  [selected.format('YYYY-MM-DD')]: {
+                    startingDay: true,
+                    color: '#fd882d',
+                    textColor: 'white'
+                  }
+                });
+              } else {
+                const start = moment(startDateFilter);
+                if (selected.isBefore(start)) {
+                  setStartDateFilter(selected.format('YYYY-MM-DD'));
+                  setMarkedDates({
+                    [selected.format('YYYY-MM-DD')]: {
+                      startingDay: true,
+                      color: '#fd882d',
+                      textColor: 'white'
+                    }
+                  });
+                } else {
+                  setEndDateFilter(selected.format('YYYY-MM-DD'));
+                  let range = {};
+                  for (let m = start; m.isSameOrBefore(selected); m.add(1, 'days')) {
+                    const key = m.format('YYYY-MM-DD');
+                    range[key] = {
+                      color: '#fd882d',
+                      textColor: 'white',
+                      ...(key === start.format('YYYY-MM-DD') && { startingDay: true }),
+                      ...(key === selected.format('YYYY-MM-DD') && { endingDay: true })
+                    };
+                  }
+                  setMarkedDates(range);
+                }
+              }
+            }}
+            minDate={moment().subtract(1, 'year').format('YYYY-MM-DD')}
+            maxDate={moment().add(1, 'year').format('YYYY-MM-DD')}
+            theme={{
+              calendarBackground: '#121212',
+              dayTextColor: '#fff',
+              monthTextColor: '#fd882d',
+              selectedDayBackgroundColor: '#fd882d',
+              selectedDayTextColor: '#fff',
+              todayTextColor: '#fd882d'
+            }}
+          />
+          <TouchableOpacity onPress={() => setCalendarVisible(false)} style={[styles.clearButton, { marginTop: 20 }]}>
+            <Text style={styles.clearText}>Cerrar</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </ImageBackground>
   );
 }
@@ -188,11 +251,6 @@ export default function BusquedasScreen() {
 const styles = StyleSheet.create({
   background: { flex: 1 },
   overlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.23)', paddingTop: 20 },
-  container: {
-    flex: 1,
-    backgroundColor: '#121212',
-    paddingTop: 20,
-  },
   toolbar: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
@@ -231,8 +289,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginHorizontal: 4
   },
-  inputText: { color: '#fff' },
-  list: { paddingBottom: 24 },
+  inputText: { color: '#fff', textAlign: 'center' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   noResults: { color: '#888', fontSize: 16 }
 });

@@ -14,10 +14,14 @@ import {
   FlatList
 } from 'react-native';
 import EncryptedStorage from 'react-native-encrypted-storage';
+import { Dimensions } from 'react-native';
+const SCREEN_WIDTH = Dimensions.get('window').width;
 import { AuthContext } from '../context/AuthContext';
 import { getValidAccessToken, logoutUser } from '../services/authService';
 import * as ImagePicker from 'react-native-image-picker';
 import { useBackground } from '../context/BackgroundContext';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import LottieView from 'lottie-react-native';
 
 export default function ProfileScreen({ setProfileImageUrl, navigation }) {
   const { setIsLoggedIn } = useContext(AuthContext);
@@ -29,6 +33,8 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
   const [checkingCodigo, setCheckingCodigo] = useState(false);
   const [codigoValido, setCodigoValido] = useState(null);
   const [fullName, setFullName] = useState('');
+  const [fallaInfo, setFallaInfo] = useState(null);
+
 
   const fetchProfile = async () => {
     setLoadingProfile(true);
@@ -43,6 +49,23 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
       setProfile(data);
       setCodigoFalla(data.codigoFalla || '');
       setFullName(data.fullName || '');
+
+      if ((data.role === 'FALLERO' || data.role === 'USER') && data.codigoFalla) {
+        try {
+          const resFalla = await fetch(
+            `http://10.0.2.2:5000/api/falla/codigo/${data.codigoFalla}`
+          );
+          if (resFalla.ok) {
+            const fallaData = await resFalla.json();
+            setFallaInfo({
+              nombre: fallaData.fullname || 'Falla desconocida',
+              imagen: fallaData.profileImageUrl || null
+            });
+          }
+        } catch {
+          console.warn('No se pudo cargar la info de la falla');
+        }
+      }
     } catch {
       Alert.alert('Error', 'No se pudo cargar el perfil');
     } finally {
@@ -50,41 +73,87 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
     }
   };
 
-  useEffect(() => { fetchProfile(); }, []);
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
   const verificarCodigo = async code => {
+    if (code.length !== 5) {
+      setCodigoValido(null);
+      setFallaInfo(null);
+      return;
+    }
+
     setCheckingCodigo(true);
     setCodigoValido(null);
     try {
       const res = await fetch(`http://10.0.2.2:5000/api/falla/codigo/${code}`);
-      setCodigoValido(res.ok);
+      if (res.ok) {
+        const fallaData = await res.json();
+        setCodigoValido(true);
+        setFallaInfo({
+          nombre: fallaData.fullname || 'Falla desconocida',
+          imagen: fallaData.profileImageUrl || null,
+        });
+      } else {
+        setCodigoValido(false);
+        setFallaInfo(null);
+      }
     } catch {
       setCodigoValido(false);
+      setFallaInfo(null);
     } finally {
       setCheckingCodigo(false);
     }
   };
 
+
   const handleSolicitarUnion = async () => {
     try {
       const token = await getValidAccessToken(navigation, setIsLoggedIn);
       if (!token) return;
-      const res = await fetch('http://10.0.2.2:5000/api/users/solicitar-union', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ codigoFalla: codigoFalla.trim().toUpperCase() })
-      });
+      const res = await fetch(
+        'http://10.0.2.2:5000/api/users/solicitar-union',
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            codigoFalla: codigoFalla.trim().toUpperCase()
+          })
+        }
+      );
       if (!res.ok) throw new Error();
       Alert.alert('✅ Solicitud enviada', 'Pronto la falla revisará tu petición.');
       setCodigoFalla('');
       setCodigoValido(null);
+      fetchProfile();
     } catch {
       Alert.alert('Error', 'No se pudo enviar la solicitud.');
     }
   };
+
+
+  const handleCancelarSolicitud = async () => {
+    try {
+      const token = await getValidAccessToken(navigation, setIsLoggedIn);
+      if (!token) return;
+
+      const res = await fetch('http://10.0.2.2:5000/api/users/cancelar-union', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error();
+      Alert.alert('❌ Solicitud cancelada', 'Has cancelado tu solicitud de unión a la falla.');
+      fetchProfile();
+    } catch {
+      Alert.alert('Error', 'No se pudo cancelar la solicitud.');
+    }
+  };
+
 
   const handleSelectPhoto = () => {
     ImagePicker.launchImageLibrary({ mediaType: 'photo' }, async response => {
@@ -95,21 +164,37 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
         if (!token) return;
 
         const formData = new FormData();
-        formData.append('file', { uri, name: fileName || 'profile.jpg', type: type || 'image/jpeg' });
-
-        const uploadRes = await fetch('http://10.0.2.2:5000/api/images/upload', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' },
-          body: formData
+        formData.append('file', {
+          uri,
+          name: fileName || 'profile.jpg',
+          type: type || 'image/jpeg'
         });
+
+        const uploadRes = await fetch(
+          'http://10.0.2.2:5000/api/images/upload',
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data'
+            },
+            body: formData
+          }
+        );
         if (!uploadRes.ok) throw new Error();
 
         const imageUrl = await uploadRes.text();
-        const updateRes = await fetch('http://10.0.2.2:5000/api/users/profile-image', {
-          method: 'PUT',
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profileImageUrl: imageUrl })
-        });
+        const updateRes = await fetch(
+          'http://10.0.2.2:5000/api/users/profile-image',
+          {
+            method: 'PUT',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ profileImageUrl: imageUrl })
+          }
+        );
         if (!updateRes.ok) throw new Error();
 
         const stored = await EncryptedStorage.getItem('auth');
@@ -145,11 +230,19 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
     <ImageBackground source={backgroundImage} style={styles.background}>
       <View style={styles.overlay}>
         <SafeAreaView style={styles.container}>
-          <ScrollView contentContainerStyle={styles.content}>
-            <Text style={styles.title}>Perfil</Text>
 
+
+          <View style={styles.toolbar}>
+            <Text style={styles.title}>Perfil</Text>
+            <TouchableOpacity onPress={handleLogout} style={styles.iconButton}>
+              <Ionicons name="log-out-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+
+          <ScrollView contentContainerStyle={styles.content}>
             {profile && (
-              <>
+              <View style={styles.profileSection}>
                 <TouchableOpacity onPress={handleSelectPhoto}>
                   <Image
                     source={
@@ -162,34 +255,23 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
                 </TouchableOpacity>
                 <Text style={styles.username}>{profile.username}</Text>
                 <Text style={styles.email}>{profile.email}</Text>
-              </>
+              </View>
             )}
 
-            <Text style={styles.sectionTitle}>Fondo de pantalla</Text>
-            <FlatList
-              horizontal
-              data={fondoKeys}
-              keyExtractor={(item) => item}
-              contentContainerStyle={{ paddingVertical: 8 }}
-              renderItem={({ item }) => (
-                <TouchableOpacity onPress={() => changeBackground(item)}>
+            {profile.role === 'FALLERO' && fallaInfo && (
+              <View style={styles.profileSection}>
+                <Text style={styles.sectionLabel}>Tu Falla</Text>
+                {fallaInfo.imagen && (
                   <Image
-                    source={fondos[item]}
-                    style={{
-                      width: 80,
-                      height: 80,
-                      marginRight: 10,
-                      borderRadius: 12,
-                      borderWidth: 2,
-                      borderColor: backgroundImage === fondos[item] ? '#fd882d' : 'transparent'
-                    }}
+                    source={{ uri: fallaInfo.imagen }}
+                    style={styles.fallaAvatarCircular}
                   />
-                </TouchableOpacity>
-              )}
-              showsHorizontalScrollIndicator={false}
-            />
+                )}
+                <Text style={styles.fallaNombre}>{fallaInfo.nombre}</Text>
+              </View>
+            )}
 
-            {profile?.role === 'FALLA' && (
+            {profile.role === 'FALLA' && (
               <View style={styles.fallaBox}>
                 <Text style={styles.fallaText}>
                   <Text style={styles.fallaLabel}>Código: </Text>
@@ -200,30 +282,75 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
                   {fullName || '—'}
                 </Text>
                 {profile.fallaInfo?.profileImageUrl && (
-                  <Image source={{ uri: profile.fallaInfo.profileImageUrl }} style={styles.fallaAvatarLarge} />
+                  <Image
+                    source={{ uri: profile.fallaInfo.profileImageUrl }}
+                    style={styles.fallaAvatarLarge}
+                  />
                 )}
               </View>
             )}
 
-            {profile?.role === 'USER' && (
+            {profile.role === 'USER' && profile.codigoFalla && fallaInfo && (
+              <View style={styles.joinBox}>
+                <View style={styles.reviewHeader}>
+                  <Text style={styles.reviewTitle}>Solicitud en revisión</Text>
+                </View>
+                <View style={styles.reviewHeader}>
+                  <LottieView
+                    source={require('../assets/animations/sand.json')}
+                    autoPlay
+                    loop
+                    style={styles.sandAnimation}
+                  />
+                </View>
+                <Text style={styles.reviewText}>
+                  Tu solicitud para unirte a la falla "{fallaInfo.nombre}" está siendo revisada.
+                </Text>
+                <TouchableOpacity
+                  style={[styles.button, { marginTop: 12, backgroundColor: '#aa3333' }]}
+                  onPress={handleCancelarSolicitud}
+                >
+                  <Text style={styles.buttonText}>Cancelar solicitud</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {profile.role === 'USER' && !profile.codigoFalla && (
               <View style={styles.joinBox}>
                 <Text style={styles.joinTitle}>Únete a tu falla</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Código de falla"
+                  placeholderTextColor="#888"
                   value={codigoFalla}
                   autoCapitalize="characters"
+                  maxLength={5}
                   onChangeText={text => {
-                    setCodigoFalla(text);
-                    if (text.length >= 3) verificarCodigo(text.trim().toUpperCase());
+                    const upperText = text.trim().toUpperCase();
+                    setCodigoFalla(upperText);
+                    if (upperText.length === 5) {
+                      verificarCodigo(upperText);
+                    } else {
+                      setCodigoValido(null);
+                      setFallaInfo(null);
+                    }
                   }}
                 />
                 {checkingCodigo ? (
-                  <ActivityIndicator size="small" />
+                  <ActivityIndicator size="small" color="#fd882d" />
                 ) : codigoValido != null ? (
-                  <Text style={{ color: codigoValido ? 'lime' : 'tomato' }}>
-                    {codigoValido ? '✅ Código válido' : '❌ Código no válido'}
-                  </Text>
+                  codigoValido ? (
+                    <Text style={{ color: 'lime', marginBottom: 8 }}>
+                      Código válido:{' '}
+                      <Text style={{ color: '#1E90FF', fontWeight: 'bold' }}>
+                        {fallaInfo?.nombre || '—'}
+                      </Text>
+                    </Text>
+                  ) : (
+                    <Text style={{ color: 'tomato', marginBottom: 8 }}>
+                      Código no válido
+                    </Text>
+                  )
                 ) : null}
                 <TouchableOpacity
                   style={[styles.button, !codigoValido && styles.buttonDisabled]}
@@ -235,9 +362,27 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
               </View>
             )}
 
-            <TouchableOpacity style={styles.logout} onPress={handleLogout}>
-              <Text style={styles.logoutText}>Cerrar sesión</Text>
-            </TouchableOpacity>
+
+
+            <Text style={styles.sectionTitle}>Fondo de pantalla</Text>
+            <FlatList
+              horizontal
+              data={fondoKeys}
+              keyExtractor={item => item}
+              contentContainerStyle={styles.fondosList}
+              renderItem={({ item }) => (
+                <TouchableOpacity onPress={() => changeBackground(item)}>
+                  <Image
+                    source={fondos[item]}
+                    style={[
+                      styles.fondoItem,
+                      backgroundImage === fondos[item] && styles.fondoItemActive
+                    ]}
+                  />
+                </TouchableOpacity>
+              )}
+              showsHorizontalScrollIndicator={false}
+            />
           </ScrollView>
         </SafeAreaView>
       </View>
@@ -247,66 +392,154 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
 
 const styles = StyleSheet.create({
   background: { flex: 1 },
-  overlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.23)' },
-  loading: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#121212'
-  },
+  overlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.23)', paddingTop: 20 },
   container: { flex: 1 },
-  content: { alignItems: 'center', padding: 20 },
-  title: {
-    fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 16
+
+  toolbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 10
   },
+  iconButton: { padding: 4 },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
+
+  loading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#121212'
+  },
+  content: { padding: 16, paddingBottom: 40 },
+
+  profileSection: { alignItems: 'center', marginBottom: 24 },
   avatar: {
-    width: 120, height: 120, borderRadius: 60, borderWidth: 2,
-    borderColor: '#fd882d', marginBottom: 12
+    width: SCREEN_WIDTH * 0.3,
+    height: SCREEN_WIDTH * 0.3,
+    borderRadius: (SCREEN_WIDTH * 0.3) / 2,
+    borderWidth: 2,
+    borderColor: '#fd882d',
+    marginBottom: 12,
   },
-  username: {
-    fontSize: 18, fontWeight: '600', color: '#fff'
+
+  username: { fontSize: 18, fontWeight: '600', color: '#fff' },
+  email: { fontSize: 14, color: '#fff', marginTop: 4 },
+
+  sectionLabel: {
+    color: '#fd882d', fontSize: 16,
+    marginBottom: 8, fontWeight: '600'
   },
-  email: {
-    fontSize: 14, color: '#fff', marginBottom: 24
+  fallaAvatarCircular: {
+    width: SCREEN_WIDTH * 0.24,
+    height: SCREEN_WIDTH * 0.24,
+    borderRadius: (SCREEN_WIDTH * 0.24) / 2,
+    borderWidth: 2,
+    borderColor: '#fd882d',
+    marginBottom: 8,
   },
-  sectionTitle: {
-    color: '#fd882d', fontSize: 16, fontWeight: '600', marginBottom: 8, alignSelf: 'flex-start'
-  },
+
+  fallaNombre: { color: '#fff', fontSize: 16, fontWeight: '500' },
+
   fallaBox: {
-    width: '100%', padding: 16, backgroundColor: '#1f1f1f',
-    borderRadius: 12, alignItems: 'center', marginBottom: 24
+    width: '100%',
+    maxWidth: 500,
+    alignSelf: 'center',
+    padding: 16,
+    backgroundColor: '#1f1f1f',
+    borderRadius: 12,
+    marginBottom: 24,
+    alignItems: 'center',
   },
-  fallaText: {
-    color: '#fff', fontSize: 16, marginBottom: 4
+
+  sandAnimation: {
+    width: SCREEN_WIDTH * 0.10,
+    height: SCREEN_WIDTH * 0.10,
   },
-  fallaLabel: {
+
+  fallaText: { color: '#fff', fontSize: 16, marginBottom: 4 },
+  fallaLabel: { fontWeight: '600' },
+  fallaAvatarLarge: {
+    width: SCREEN_WIDTH * 0.2,
+    height: SCREEN_WIDTH * 0.2,
+    borderRadius: (SCREEN_WIDTH * 0.2) / 2,
+    marginTop: 12,
+  },
+
+
+  sectionTitle: { color: '#fff', fontSize: 16, fontWeight: '600', marginBottom: 8 },
+  fondosList: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+
+  fondoItem: {
+    width: SCREEN_WIDTH * 0.2,
+    height: SCREEN_WIDTH * 0.2,
+    marginHorizontal: 6,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+
+  fondoItemActive: { borderColor: '#fd882d' },
+
+  joinBox: {
+    width: '100%',
+    maxWidth: 500,
+    alignSelf: 'center',
+    padding: 16,
+    backgroundColor: '#1f1f1f',
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+
+  joinTitle: {
+    color: '#fd882d',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+    textAlign: 'center', // <-- añade esto
+  },
+
+  input: {
+    backgroundColor: '#2c2c2c',
+    color: '#fff',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 8,
+    width: '100%',
+  },
+
+  button: {
+    backgroundColor: '#fd882d',
+    paddingVertical: 12, borderRadius: 8
+  },
+  buttonDisabled: { backgroundColor: '#555' },
+  buttonText: {
+    color: '#fff', textAlign: 'center',
     fontWeight: '600'
   },
-  fallaAvatarLarge: {
-    width: 80, height: 80, borderRadius: 40, marginTop: 12
+
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 5,
   },
-  joinBox: {
-    width: '100%', padding: 16, backgroundColor: '#1f1f1f',
-    borderRadius: 12, alignItems: 'center', marginBottom: 24
+  reviewIcon: {
+    marginRight: 6,
   },
-  joinTitle: {
-    color: '#fd882d', fontSize: 16, marginBottom: 8, fontWeight: '600'
+  reviewText: {
+    color: '#fff',
+    textAlign: 'center',
   },
-  input: {
-    width: '80%', backgroundColor: '#2c2c2c', color: '#fff',
-    padding: 10, borderRadius: 8, marginBottom: 8
+  reviewTitle: {
+    color: '#fd882d',
+    fontSize: 16,
+    fontWeight: '600',
   },
-  button: {
-    width: '80%', backgroundColor: '#fd882d',
-    paddingVertical: 12, borderRadius: 8, marginTop: 8
-  },
-  buttonDisabled: {
-    backgroundColor: '#555'
-  },
-  buttonText: {
-    color: '#fff', textAlign: 'center', fontWeight: '600'
-  },
-  logout: {
-    marginTop: 40
-  },
-  logoutText: {
-    color: '#d00', fontSize: 16
-  }
 });

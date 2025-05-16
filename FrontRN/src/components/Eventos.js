@@ -8,14 +8,18 @@ import {
   Linking,
   ActivityIndicator,
   Dimensions,
+  Alert,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
+import { getValidAccessToken } from '../services/authService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAX_CHARS = 30;
 
 export default function Evento({
+  id,
   backgroundImage,
   creatorId,
   creatorName,
@@ -27,12 +31,22 @@ export default function Evento({
   description,
   createdAt,
   onPress,
+  miId,
+  refreshEventos,
 }) {
+  const navigation = useNavigation();
   const [creatorImage, setCreatorImage] = useState(null);
   const [fallaName, setFallaName] = useState(null);
   const [fallaImage, setFallaImage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showFullDescription, setShowFullDescription] = useState(false);
+
+  // Determinar si es tu propio evento
+  const isOwn = miId === creatorId;
+  // Colores del gradiente: verde si es propio, naranja si no
+  const gradientColors = isOwn
+    ? ['#32CD32', '#228B22']
+    : ['#FFD700', '#FFA500'];
 
   useEffect(() => {
     async function fetchData() {
@@ -70,9 +84,63 @@ export default function Evento({
   const toggleDescription = () => setShowFullDescription(!showFullDescription);
   const shouldTruncate = description.length > MAX_CHARS;
 
+  // Manejar long press solo para tus eventos
+  const handleLongPress = () => {
+    if (!isOwn) return;
+    Alert.alert(
+      'Opciones',
+      'Selecciona una acción:',
+      [
+        {
+          text: 'Modificar evento',
+          onPress: () =>
+            navigation.navigate('CrearEvento', {
+              event: { id, title, location, description, imageUrl: backgroundImage, startDate, endDate, createdAt },
+            }),
+        },
+        {
+          text: 'Eliminar evento',
+          style: 'destructive',
+          onPress: handleDelete,
+        },
+        { text: 'Cancelar', style: 'cancel' },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  // Llamada API para eliminar
+  const handleDelete = async () => {
+    try {
+      const token = await getValidAccessToken(navigation);
+      if (!token) return;
+
+      const res = await fetch(`http://10.0.2.2:5000/api/events/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 204) {
+        Alert.alert('Evento eliminado');
+        refreshEventos();
+      } else if (res.status === 404) {
+        Alert.alert('Error', 'Evento no encontrado');
+      } else {
+        Alert.alert('Error', 'No se pudo eliminar el evento');
+      }
+    } catch (err) {
+      console.error('Error eliminando evento:', err);
+      Alert.alert('Error', 'Error eliminando el evento');
+    }
+  };
+
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={styles.container}>
-      <LinearGradient colors={['#FFD700', '#FFA500']} style={styles.gradient}>
+    <TouchableOpacity
+      onPress={onPress}
+      onLongPress={handleLongPress}
+      activeOpacity={0.9}
+      style={styles.container}
+    >
+      <LinearGradient colors={gradientColors} style={styles.gradient}>
         <View style={styles.card}>
           <View style={styles.header}>
             <Image source={{ uri: backgroundImage }} style={styles.backgroundImage} />
@@ -116,7 +184,7 @@ export default function Evento({
                   </Text>
 
                   <View style={styles.descriptionContainer}>
-                    <Text style={styles.description} numberOfLines={showFullDescription ? null : 1}>
+                    <Text style={styles.description} numberOfLines={showFullDescription ? undefined : 1}>
                       {showFullDescription
                         ? description
                         : `${description.slice(0, MAX_CHARS)}${shouldTruncate ? '...' : ''}`}
@@ -206,6 +274,10 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  rowSpaceBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   avatar: {
     width: 36,

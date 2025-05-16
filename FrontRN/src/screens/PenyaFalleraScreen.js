@@ -61,7 +61,7 @@ export default function PenyaFalleraScreen({ navigation }) {
           setEventData({
             eventoId: codigoFalla,
             title: fallaInfo.fullname || 'Penya Fallera',
-            backgroundImage: '',
+            backgroundImage: fallaInfo.profileImageUrl,
             creatorId: parsed.id,
             creatorName: fallaInfo.username,
             creatorImage: fallaInfo.profileImageUrl || null

@@ -19,13 +19,17 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
 
-    public String generateToken(String email) {
+    /**
+     * Genera un JWT que incluye el email y el rol del usuario.
+     */
+    public String generateToken(String email, String role) {
         long now = System.currentTimeMillis();
         return Jwts.builder()
             .setSubject(email)
+            .claim("role", role)  // ← añadimos el rol como claim
             .setIssuedAt(new Date(now))
-            .setExpiration(new Date(now + 1000 * 60 * 1)) // 1 minuto
-            .setId(UUID.randomUUID().toString()) 
+            .setExpiration(new Date(now + 1000 * 60 * 60)) // ej. 1 hora de validez
+            .setId(UUID.randomUUID().toString())
             .signWith(getSigningKey(), SignatureAlgorithm.HS256)
             .compact();
     }
@@ -41,7 +45,6 @@ public class JwtUtil {
             .compact();
     }
 
-    
     public boolean validateToken(String token, String email) {
         return extractUsername(token).equals(email) && !isTokenExpired(token);
     }
@@ -54,7 +57,11 @@ public class JwtUtil {
         return extractClaims(token).getId();
     }
 
-    
+    /** Nuevo: extrae el rol almacenado en el claim "role". */
+    public String extractRole(String token) {
+        return extractClaims(token).get("role", String.class);
+    }
+
     public boolean isTokenExpired(String token) {
         return extractClaims(token).getExpiration().before(new Date());
     }

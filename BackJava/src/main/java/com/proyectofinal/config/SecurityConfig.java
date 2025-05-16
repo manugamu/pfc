@@ -2,6 +2,7 @@ package com.proyectofinal.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,7 +19,7 @@ public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
-    private final RedisService redisService; 
+    private final RedisService redisService;
 
     public SecurityConfig(JwtUtil jwtUtil, UserRepository userRepository, RedisService redisService) {
         this.jwtUtil = jwtUtil;
@@ -28,22 +29,28 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
-              
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/users/register").permitAll()
-                .requestMatchers("/api/users/profile-image/**").permitAll()
-                .requestMatchers("/api/users/*").permitAll()
-                .requestMatchers("/api/events", "/api/events/*").permitAll()
-                .requestMatchers("/api/falla/codigo/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            
-            .addFilterBefore(
-                new JwtAuthFilter(jwtUtil, userRepository, redisService),
-                UsernamePasswordAuthenticationFilter.class
-            );
+        http
+          .csrf(csrf -> csrf.disable())
+          .authorizeHttpRequests(auth -> auth
+              .requestMatchers("/api/auth/**").permitAll()
+              .requestMatchers("/api/users/register").permitAll()
+              .requestMatchers("/api/users/profile-image/**").permitAll()
+              .requestMatchers("/api/users/*").permitAll()
+              .requestMatchers("/api/events").permitAll()
+              .requestMatchers(HttpMethod.GET, "/api/events/*").permitAll()
+              .requestMatchers("/api/falla/codigo/**").permitAll()
+
+              // Sólo FALLA puede listar sus falleros
+              .requestMatchers(HttpMethod.GET,    "/api/falla/*/falleros").hasRole("FALLA")
+              // Sólo FALLA puede eliminar un fallero
+              .requestMatchers(HttpMethod.DELETE, "/api/falla/*/fallero/*").hasRole("FALLA")
+
+              .anyRequest().authenticated()
+          )
+          .addFilterBefore(
+              new JwtAuthFilter(jwtUtil, userRepository, redisService),
+              UsernamePasswordAuthenticationFilter.class
+          );
 
         return http.build();
     }
