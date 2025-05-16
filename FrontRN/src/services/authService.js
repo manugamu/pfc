@@ -1,6 +1,7 @@
 import EncryptedStorage from 'react-native-encrypted-storage';
 import { getDeviceId } from './deviceService';
 import { Alert } from 'react-native';
+import { API_BASE_URL } from '../config';    // <- importa tu base
 
 let isRefreshing = false;
 let refreshPromise = null;
@@ -19,19 +20,19 @@ export async function getValidAccessToken(navigation = null, setIsLoggedIn = nul
   refreshPromise = (async () => {
     try {
       const deviceId = await getDeviceId();
-      console.log("➡️ Enviando para refresh:");
-      console.log("refreshToken:", refreshToken);
-      console.log("deviceId:", deviceId);
+      console.log("➡️ Enviando para refresh:", { refreshToken, deviceId });
 
-      const res = await fetch('http://10.0.2.2:5000/api/auth/refresh', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken, deviceId }),
-      });
+      const res = await fetch(
+        `${API_BASE_URL}/api/auth/refresh`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken, deviceId }),
+        }
+      );
 
       if (!res.ok) throw new Error('Refresh token inválido');
 
-      const data = await res.json();
       const {
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
@@ -42,7 +43,7 @@ export async function getValidAccessToken(navigation = null, setIsLoggedIn = nul
         fallaInfo,
         codigoFalla,
         fullName
-      } = data;
+      } = await res.json();
 
       await EncryptedStorage.setItem(
         'auth',
@@ -79,10 +80,13 @@ export async function validateStoredToken(setIsLoggedIn) {
     const token = await getValidAccessToken(null, setIsLoggedIn);
     if (!token) return false;
 
-    const res = await fetch('http://10.0.2.2:5000/api/users/me', {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetch(
+      `${API_BASE_URL}/api/users/me`,
+      {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
 
     return res.ok;
   } catch (err) {

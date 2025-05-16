@@ -19,6 +19,7 @@ import { getValidAccessToken, logoutUser } from '../services/authService';
 import Evento from '../components/Eventos';
 import { useBackground } from '../context/BackgroundContext';
 import EncryptedStorage from 'react-native-encrypted-storage';
+import { API_BASE_URL } from '../config'; 
 
 export default function BusquedasScreen() {
   const navigation = useNavigation();
@@ -46,7 +47,7 @@ export default function BusquedasScreen() {
       }
       const token = await getValidAccessToken(navigation, setIsLoggedIn);
       if (!token) return;
-      const res = await fetch('http://10.0.2.2:5000/api/events', {
+      const res = await fetch(`${API_BASE_URL}/api/events`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401 || res.status === 403) {

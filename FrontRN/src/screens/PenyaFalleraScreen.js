@@ -4,6 +4,7 @@ import EncryptedStorage from 'react-native-encrypted-storage';
 import EventoChatScreen from './EventoChatScreen';
 import { AuthContext } from '../context/AuthContext';
 import { getValidAccessToken } from '../services/authService';
+import { API_BASE_URL } from '../config';
 
 export default function PenyaFalleraScreen({ navigation }) {
   const [eventData, setEventData] = useState(null);
@@ -44,7 +45,7 @@ export default function PenyaFalleraScreen({ navigation }) {
         const token = await getValidAccessToken(navigation, setIsLoggedIn);
         if (!token || didCancel) return;
 
-        const res = await fetch(`http://10.0.2.2:5000/api/falla/codigo/${codigoFalla}`, {
+        const res = await fetch(`${API_BASE_URL}/api/falla/codigo/${codigoFalla}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 

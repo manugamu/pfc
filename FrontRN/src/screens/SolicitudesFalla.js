@@ -17,6 +17,7 @@ import Dialog from 'react-native-dialog';
 import EncryptedStorage from 'react-native-encrypted-storage';
 import { AuthContext } from '../context/AuthContext';
 import { getValidAccessToken } from '../services/authService';
+import { API_BASE_URL } from '../config';
 
 export default function GestionFalleros({ navigation }) {
   const { setIsLoggedIn } = useContext(AuthContext);
@@ -40,7 +41,7 @@ export default function GestionFalleros({ navigation }) {
       if (!token) return;
 
       // validar rol FALLA
-      const meRes = await fetch('http://10.0.2.2:5000/api/users/me', {
+      const meRes = await fetch(`${API_BASE_URL}/api/users/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!meRes.ok) throw new Error('Sin permiso');
@@ -56,7 +57,7 @@ export default function GestionFalleros({ navigation }) {
 
       // solicitudes pendientes
       const resSol = await fetch(
-        `http://10.0.2.2:5000/api/falla/solicitudes/${fallaId}`,
+        `${API_BASE_URL}/api/falla/solicitudes/${fallaId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!resSol.ok) throw new Error('Error obteniendo solicitudes');
@@ -64,7 +65,7 @@ export default function GestionFalleros({ navigation }) {
 
       // falleros
       const resFall = await fetch(
-        `http://10.0.2.2:5000/api/falla/${fallaId}/falleros`,
+        `${API_BASE_URL}/api/falla/${fallaId}/falleros`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!resFall.ok) throw new Error('Error obteniendo falleros');
@@ -89,7 +90,7 @@ export default function GestionFalleros({ navigation }) {
       if (!token) return;
       const { id: fallaId } = JSON.parse(await EncryptedStorage.getItem('auth'));
 
-      const res = await fetch('http://10.0.2.2:5000/api/falla/aceptar', {
+      const res = await fetch(`${API_BASE_URL}/api/falla/aceptar`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, fallaId })
@@ -109,7 +110,7 @@ export default function GestionFalleros({ navigation }) {
       if (!token) return;
       const { id: fallaId } = JSON.parse(await EncryptedStorage.getItem('auth'));
 
-      const res = await fetch('http://10.0.2.2:5000/api/falla/rechazar', {
+      const res = await fetch(`${API_BASE_URL}/api/falla/rechazar`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, fallaId })
@@ -139,7 +140,7 @@ export default function GestionFalleros({ navigation }) {
       const { id: fallaId } = JSON.parse(await EncryptedStorage.getItem('auth'));
 
       const res = await fetch(
-        `http://10.0.2.2:5000/api/falla/${fallaId}/fallero/${selectedUser.id}`,
+        `${API_BASE_URL}/api/falla/${fallaId}/fallero/${selectedUser.id}`,
         {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },

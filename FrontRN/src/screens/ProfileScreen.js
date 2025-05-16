@@ -22,6 +22,7 @@ import * as ImagePicker from 'react-native-image-picker';
 import { useBackground } from '../context/BackgroundContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LottieView from 'lottie-react-native';
+import { API_BASE_URL } from '../config';
 
 export default function ProfileScreen({ setProfileImageUrl, navigation }) {
   const { setIsLoggedIn } = useContext(AuthContext);
@@ -41,7 +42,7 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
     try {
       const token = await getValidAccessToken(navigation, setIsLoggedIn);
       if (!token) return;
-      const res = await fetch('http://10.0.2.2:5000/api/users/me', {
+      const res = await fetch(`${API_BASE_URL}/api/users/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error();
@@ -53,7 +54,7 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
       if ((data.role === 'FALLERO' || data.role === 'USER') && data.codigoFalla) {
         try {
           const resFalla = await fetch(
-            `http://10.0.2.2:5000/api/falla/codigo/${data.codigoFalla}`
+            `${API_BASE_URL}/api/falla/codigo/${data.codigoFalla}`
           );
           if (resFalla.ok) {
             const fallaData = await resFalla.json();
@@ -87,7 +88,7 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
     setCheckingCodigo(true);
     setCodigoValido(null);
     try {
-      const res = await fetch(`http://10.0.2.2:5000/api/falla/codigo/${code}`);
+      const res = await fetch(`${API_BASE_URL}/api/falla/codigo/${code}`);
       if (res.ok) {
         const fallaData = await res.json();
         setCodigoValido(true);
@@ -113,7 +114,7 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
       const token = await getValidAccessToken(navigation, setIsLoggedIn);
       if (!token) return;
       const res = await fetch(
-        'http://10.0.2.2:5000/api/users/solicitar-union',
+        `${API_BASE_URL}/api/users/solicitar-union`,
         {
           method: 'PUT',
           headers: {
@@ -141,7 +142,7 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
       const token = await getValidAccessToken(navigation, setIsLoggedIn);
       if (!token) return;
 
-      const res = await fetch('http://10.0.2.2:5000/api/users/cancelar-union', {
+      const res = await fetch(`${API_BASE_URL}/api/users/cancelar-union`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -171,7 +172,7 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
         });
 
         const uploadRes = await fetch(
-          'http://10.0.2.2:5000/api/images/upload',
+          `${API_BASE_URL}/api/images/upload`,
           {
             method: 'POST',
             headers: {
@@ -185,7 +186,7 @@ export default function ProfileScreen({ setProfileImageUrl, navigation }) {
 
         const imageUrl = await uploadRes.text();
         const updateRes = await fetch(
-          'http://10.0.2.2:5000/api/users/profile-image',
+          `${API_BASE_URL}/api/users/profile-image`,
           {
             method: 'PUT',
             headers: {

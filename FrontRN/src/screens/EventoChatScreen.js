@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getValidAccessToken, logoutUser } from '../services/authService';
 import { AuthContext } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../config'; 
 
 const colors = ['#f94144', '#f3722c', '#f9c74f', '#43aa8b', '#577590'];
 const getColorForUser = (username) => {
@@ -39,7 +40,7 @@ export default function EventoChatScreen({ route, navigation }) {
       try {
         const token = await getValidAccessToken(null, setIsLoggedIn);
         if (!token) return;
-        const res = await fetch('http://10.0.2.2:5000/api/users/me', {
+        const res = await fetch(`${API_BASE_URL}/api/users/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
@@ -123,7 +124,7 @@ export default function EventoChatScreen({ route, navigation }) {
         try {
           const token = await getValidAccessToken(null, setIsLoggedIn);
           if (!token) return;
-          const res = await fetch(`http://10.0.2.2:5000/api/users/${creatorId}`, {
+          const res = await fetch(`${API_BASE_URL}/api/users/${creatorId}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (res.ok) {
@@ -143,7 +144,7 @@ export default function EventoChatScreen({ route, navigation }) {
     try {
       const token = await getValidAccessToken(null, setIsLoggedIn);
       if (!token) return;
-      const res = await fetch(`http://10.0.2.2:5000/api/users/${userId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {

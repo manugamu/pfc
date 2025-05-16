@@ -9,6 +9,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getDeviceId } from '../services/deviceService';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
 import { AuthContext } from '../context/AuthContext';
+import { API_BASE_URL } from '../config';
 
 export default function LoginScreen({ navigation }) {
   const { setIsLoggedIn, setRole } = useContext(AuthContext);
@@ -49,7 +50,7 @@ export default function LoginScreen({ navigation }) {
     try {
       const deviceId = await getDeviceId();
   
-      const response = await fetch('http://10.0.2.2:5000/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: username, password, deviceId }),

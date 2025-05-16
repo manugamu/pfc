@@ -22,6 +22,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { Calendar } from 'react-native-calendars';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
+import { API_BASE_URL } from '../config'; 
 
 import { AuthContext } from '../context/AuthContext';
 import { getValidAccessToken } from '../services/authService';
@@ -59,7 +60,7 @@ export default function CrearEventoScreen() {
   const loadUser = async () => {
     const token = await getValidAccessToken(navigation, setIsLoggedIn);
     if (!token) return;
-    const res = await fetch('http://10.0.2.2:5000/api/users/me', {
+    const res = await fetch(`${API_BASE_URL}/api/users/me`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (!res.ok) return;
@@ -108,7 +109,7 @@ export default function CrearEventoScreen() {
     if (!token) return null;
     const form = new FormData();
     form.append('file',{ uri, type:'image/jpeg', name:'evento.jpg' });
-    const res = await fetch('http://10.0.2.2:5000/api/images/upload',{ 
+    const res = await fetch(`${API_BASE_URL}/api/images/upload`,{ 
       method:'POST',
       headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'multipart/form-data' },
       body: form
@@ -144,8 +145,8 @@ export default function CrearEventoScreen() {
         createdAt: isEditMode ? event.createdAt : new Date().toISOString()
       };
       const endpoint = isEditMode
-        ? `http://10.0.2.2:5000/api/events/${event.id}`
-        : 'http://10.0.2.2:5000/api/events';
+        ? `${API_BASE_URL}/api/events/${event.id}`
+        : `${API_BASE_URL}/api/events`;
       const method = isEditMode ? 'PUT' : 'POST';
       const token = await getValidAccessToken(navigation, setIsLoggedIn);
       const res = await fetch(endpoint,{ 

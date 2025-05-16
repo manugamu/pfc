@@ -14,6 +14,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { getValidAccessToken } from '../services/authService';
+import { API_BASE_URL } from '../config'; 
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAX_CHARS = 30;
@@ -51,7 +52,7 @@ export default function Evento({
   useEffect(() => {
     async function fetchData() {
       try {
-        const resUser = await fetch(`http://10.0.2.2:5000/api/users/${creatorId}`);
+        const resUser = await fetch(`${API_BASE_URL}/api/users/${creatorId}`);
         const user = await resUser.json();
         setCreatorImage(user.profileImageUrl);
 
@@ -60,7 +61,7 @@ export default function Evento({
         else if (user.role === 'USER') fallaCode = user.fallaInfo?.fallaCode;
 
         if (fallaCode) {
-          const resFalla = await fetch(`http://10.0.2.2:5000/api/falla/codigo/${fallaCode}`);
+          const resFalla = await fetch(`${API_BASE_URL}/api/falla/codigo/${fallaCode}`);
           const falla = await resFalla.json();
           setFallaName(falla.fullname || falla.username);
           setFallaImage(falla.profileImageUrl);
@@ -115,7 +116,7 @@ export default function Evento({
       const token = await getValidAccessToken(navigation);
       if (!token) return;
 
-      const res = await fetch(`http://10.0.2.2:5000/api/events/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/events/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

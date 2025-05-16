@@ -23,6 +23,7 @@ import { getValidAccessToken, logoutUser } from '../services/authService';
 import { AuthContext } from '../context/AuthContext';
 import { useBackground } from '../context/BackgroundContext';
 import EncryptedStorage from 'react-native-encrypted-storage';
+import { API_BASE_URL } from '../config';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -51,7 +52,7 @@ export default function HomeScreen() {
 
       const token = await getValidAccessToken(navigation, setIsLoggedIn);
       if (!token) return;
-      const res = await fetch('http://10.0.2.2:5000/api/events', {
+      const res = await fetch(`${API_BASE_URL}/api/events`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.status === 401 || res.status === 403) {
@@ -76,12 +77,12 @@ export default function HomeScreen() {
     if (role !== 'FALLA') return;
     const token = await getValidAccessToken(navigation, setIsLoggedIn);
     if (!token) return;
-    const resUser = await fetch('http://10.0.2.2:5000/api/users/me', {
+    const resUser = await fetch(`${API_BASE_URL}/api/users/me`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!resUser.ok) return;
     const userData = await resUser.json();
-    const res = await fetch(`http://10.0.2.2:5000/api/falla/solicitudes/${userData.id}`, {
+    const res = await fetch(`${API_BASE_URL}/api/falla/solicitudes/${userData.id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = res.ok ? await res.json() : [];

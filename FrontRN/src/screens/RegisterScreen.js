@@ -8,6 +8,7 @@ import {
   Alert,
   ScrollView
 } from 'react-native';
+import { API_BASE_URL } from '../config';
 
 export default function RegisterScreen({ navigation }) {
   const [form, setForm] = useState({
@@ -40,7 +41,7 @@ export default function RegisterScreen({ navigation }) {
   const verificarCodigoFalla = async (codigo) => {
     setCheckingCodigo(true);
     try {
-      const res = await fetch(`http://10.0.2.2:5000/api/falla/codigo/${codigo}`);
+      const res = await fetch(`${API_BASE_URL}/api/falla/codigo/${codigo}`);
       if (res.ok) {
         const data = await res.json();
         setCodigoValido(true);
@@ -65,7 +66,7 @@ export default function RegisterScreen({ navigation }) {
 
     setLoading(true);
     try {
-      const res = await fetch('http://10.0.2.2:5000/api/users/register', {
+      const res = await fetch(`${API_BASE_URL}/api/users/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
