@@ -1,17 +1,19 @@
+// App.js
 import React, { useContext } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer }     from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaProvider }        from 'react-native-safe-area-context';
 
-import RegisterScreen from './screens/RegisterScreen';
-import LoginScreen from './screens/LoginScreen';
-import MainTabs from './screens/MainTabs';
-import EventoChatScreen from './screens/EventoChatScreen';
-import CrearEventoScreen from './screens/CrearEventoScreen';
-import SolicitudesFalla from './screens/SolicitudesFalla';
+import RegisterScreen      from './screens/RegisterScreen';
+import LoginScreen         from './screens/LoginScreen';
+import MainTabs            from './screens/MainTabs';
+import EventoChatScreen    from './screens/EventoChatScreen';
+import CrearEventoScreen   from './screens/CrearEventoScreen';
+import SolicitudesFalla    from './screens/SolicitudesFalla';
 
 import { AuthProvider, AuthContext } from './context/AuthContext';
-import { BackgroundProvider } from './context/BackgroundContext';
+import { BackgroundProvider }        from './context/BackgroundContext';
 
 const Stack = createNativeStackNavigator();
 
@@ -51,7 +53,9 @@ export default function App() {
   return (
     <AuthProvider>
       <BackgroundProvider>
-        <AppNavigator />
+        <SafeAreaProvider>
+          <AppNavigator />
+        </SafeAreaProvider>
       </BackgroundProvider>
     </AuthProvider>
   );

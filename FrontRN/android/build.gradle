@@ -1,22 +1,33 @@
 buildscript {
-   ext {
-    buildToolsVersion = "35.0.0"
-    minSdkVersion = 24
-    compileSdkVersion = 35
-    targetSdkVersion = 35
-    ndkVersion = "29.0.13113456"
-    kotlinVersion = "2.0.21"
-}
+    ext {
+        buildToolsVersion   = "35.0.0"
+        minSdkVersion       = 24
+        compileSdkVersion   = 35
+        targetSdkVersion    = 35
+        ndkVersion          = "29.0.13113456"
+        kotlinVersion       = "1.8.21"          // versión de Kotlin
+        rnPluginVersion     = "0.78.1"          // que tu package.json de @react-native/gradle-plugin diga
+        androidGradlePlugin = "8.8.0"           // coincide con tu Android Studio / AGP
+    }
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath("com.android.tools.build:gradle")
-        classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+        // Android Gradle Plugin
+        classpath("com.android.tools.build:gradle:${androidGradlePlugin}")
+        // Kotlin Gradle Plugin
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}")
+        // React-Native Gradle Plugin
+        classpath("com.facebook.react:react-native-gradle-plugin:${rnPluginVersion}")
     }
 }
 
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
 
 apply plugin: "com.facebook.react.rootproject"

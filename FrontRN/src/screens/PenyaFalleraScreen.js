@@ -6,6 +6,7 @@ import { AuthContext } from '../context/AuthContext';
 import { getValidAccessToken } from '../services/authService';
 import { API_BASE_URL } from '../config';
 
+
 export default function PenyaFalleraScreen({ navigation }) {
   const [eventData, setEventData] = useState(null);
   const [codigoFalla, setCodigoFalla] = useState(null);

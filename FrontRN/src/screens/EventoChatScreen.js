@@ -8,7 +8,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getValidAccessToken, logoutUser } from '../services/authService';
 import { AuthContext } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE_URL } from '../config'; 
+import { API_BASE_URL, MESSAGES_HTTP_URL, WS_BASE_URL } from '../config';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const colors = ['#f94144', '#f3722c', '#f9c74f', '#43aa8b', '#577590'];
 const getColorForUser = (username) => {
@@ -34,6 +35,7 @@ export default function EventoChatScreen({ route, navigation }) {
   const ws = useRef(null);
   const flatListRef = useRef(null);
   const { setIsLoggedIn } = useContext(AuthContext);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const getUserInfo = async () => {
@@ -71,7 +73,7 @@ export default function EventoChatScreen({ route, navigation }) {
 
       const cacheKey = `mensajes_${eventoId}`;
       try {
-        const res = await fetch(`http://10.0.2.2:4000/mensajes/${eventoId}`, {
+        const res = await fetch(`${MESSAGES_HTTP_URL}/mensajes/${eventoId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -160,7 +162,7 @@ export default function EventoChatScreen({ route, navigation }) {
     if (!username || !eventoId || !myUserId) return;
     let interval;
     const connect = () => {
-      ws.current = new WebSocket('ws://10.0.2.2:4000');
+      ws.current = new WebSocket(`${WS_BASE_URL}`);
       ws.current.onopen = () => {
         setIsConnected(true);
         ws.current.send(JSON.stringify({ type: 'join', eventoId, user: username }));
@@ -247,7 +249,7 @@ export default function EventoChatScreen({ route, navigation }) {
 
   if (!username || loading) {
     return (
-      <View style={styles.loadingContainer}> 
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#1E88E5" />
         <Text style={{ color: '#fff', marginTop: 10 }}>Cargando chat...</Text>
       </View>
@@ -266,7 +268,7 @@ export default function EventoChatScreen({ route, navigation }) {
           <View style={styles.headerOverlay} />
           {navigation && (
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-               <Ionicons name="arrow-back" size={24} color="#fff" />
+              <Ionicons name="arrow-back" size={24} color="#fff" />
             </TouchableOpacity>
           )}
           <View style={styles.headerContent}>
@@ -288,11 +290,19 @@ export default function EventoChatScreen({ route, navigation }) {
           data={Array.isArray(messages) ? messages : []}
           keyExtractor={(_, index) => index.toString()}
           renderItem={renderItem}
+          style={{ flex: 1 }}                           // ocupa todo el espacio disponible
           contentContainerStyle={{ padding: 10 }}
-          ListEmptyComponent={<Text style={{ color: '#ccc', textAlign: 'center', marginTop: 20 }}>Aún no hay mensajes</Text>}
+          ListEmptyComponent={
+            <Text style={{ color: '#ccc', textAlign: 'center', marginTop: 20 }}>
+              Aún no hay mensajes
+            </Text>
+          }
           extraData={userImages}
-          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          onContentSizeChange={() =>
+            flatListRef.current?.scrollToEnd({ animated: true })
+          }
         />
+
 
         {!isConnected && (
           <View style={styles.warningBanner}>
@@ -300,7 +310,7 @@ export default function EventoChatScreen({ route, navigation }) {
           </View>
         )}
 
-        <View style={styles.inputRow}>
+       <View style={[styles.inputRow, { paddingBottom: insets.bottom + 6 }]}>
           <TextInput
             value={input}
             onChangeText={(text) => {
@@ -322,15 +332,13 @@ export default function EventoChatScreen({ route, navigation }) {
   );
 }
 
-// ...mantén aquí el resto de tus estilos sin cambio.
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212' },
-  inputRow: {
+   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 8,
-    paddingVertical: 6,
     backgroundColor: '#121212',
   },
   flatInput: {

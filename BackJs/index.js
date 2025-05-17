@@ -51,14 +51,21 @@ wss.on('connection', (ws) => {
 
         const savedMessage = await Message.create(parsed);
 
+        // Convertimos a objeto y añadimos el type
+        const outgoing = {
+          type: 'chat',
+          ...savedMessage.toObject()
+        };
+
         wss.clients.forEach((client) => {
           if (
             client.readyState === WebSocket.OPEN &&
             client.eventoId === eventoId
           ) {
-            client.send(JSON.stringify(savedMessage));
+            client.send(JSON.stringify(outgoing));
           }
         });
+
       }
     } catch (err) {
       console.warn('❌ Mensaje no válido o JSON incorrecto:', message);
