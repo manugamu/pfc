@@ -37,8 +37,17 @@ public class UserController {
 
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody User newUser) {
+        // 1) Email existente?
         if (userService.findByEmail(newUser.getEmail()).isPresent()) {
-            return ResponseEntity.badRequest().body("El usuario ya existe");
+            return ResponseEntity
+                .badRequest()
+                .body("El email ya está registrado");
+        }
+        // 2) Username en uso?
+        if (userService.existsByUsername(newUser.getUsername())) {
+            return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body("El nombre de usuario ya está en uso");
         }
 
         newUser.setRole("USER");
@@ -48,7 +57,9 @@ public class UserController {
         if (codigoFallaOriginal != null && !codigoFallaOriginal.isEmpty()) {
             Optional<User> fallaOpt = userRepository.findByFallaInfo_FallaCode(codigoFallaOriginal);
             if (!fallaOpt.isPresent()) {
-                return ResponseEntity.badRequest().body("Código de falla inválido.");
+                return ResponseEntity
+                    .badRequest()
+                    .body("Código de falla inválido.");
             }
             newUser.setPendienteUnion(true);
         }
@@ -72,20 +83,18 @@ public class UserController {
         return ResponseEntity.ok("Usuario registrado correctamente");
     }
 
-    
+
     @GetMapping("/exists/{username}")
     public ResponseEntity<Void> existsByUsername(@PathVariable String username) {
         boolean exists = userService.existsByUsername(username);
         if (exists) {
-            // 409 Conflict si ya existe
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         } else {
-            // 200 OK si no existe
             return ResponseEntity.ok().build();
         }
     }
 
-    
+
     @PutMapping("/profile-image")
     public ResponseEntity<?> updateProfileImage(@RequestBody Map<String, String> request, Authentication auth) {
         String email = auth.getName();
@@ -208,14 +217,13 @@ public class UserController {
             data.put("fallaInfo", user.getFallaInfo());
             data.put("codigoFalla", user.getCodigoFalla());
             data.put("pendienteUnion", user.isPendienteUnion());
-            data.put("fullName", user.getFullName());// ← nuevo
+            data.put("fullName", user.getFullName());
             return ResponseEntity.ok(data);
         } else {
             return ResponseEntity.status(404).body("Usuario no encontrado");
         }
     }
-    
-    
+
     @PostMapping("/cancelar-union")
     public ResponseEntity<?> cancelUnionRequest(Authentication auth) {
         String email = auth.getName();
@@ -239,5 +247,4 @@ public class UserController {
 
         return ResponseEntity.ok("Solicitud cancelada");
     }
-    
 }

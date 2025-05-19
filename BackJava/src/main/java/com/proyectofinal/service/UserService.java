@@ -25,18 +25,17 @@ public class UserService {
         Optional<User> user = userRepository.findByEmail(email);
         return user.isPresent() && passwordEncoder.matches(password, user.get().getPassword());
     }
-    
-    
+
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
-    }    
+    }
 
     public User saveUser(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
-    
+
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
     }
-} 
+}

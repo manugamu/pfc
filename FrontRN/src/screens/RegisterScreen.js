@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import LottieView from 'lottie-react-native';
+import debounce from 'lodash.debounce';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { scale, verticalScale, moderateScale } from 'react-native-size-matters';
@@ -32,6 +33,7 @@ export default function RegisterScreen({ navigation }) {
   const initialLogoHeight = baseSize * 0.45;
   const smallLogoHeight = baseSize * 0.22;
   const logoHeight = useRef(new Animated.Value(initialLogoHeight)).current;
+  const [usernameTaken, setUsernameTaken] = useState(false);
 
   const [form, setForm] = useState({
     country: '',
@@ -92,6 +94,22 @@ export default function RegisterScreen({ navigation }) {
       hide.remove();
     };
   }, [initialLogoHeight, smallLogoHeight]);
+
+  const checkUsername = async username => {
+    if (!username) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/users/exists/${username}`);
+      setUsernameTaken(res.status === 409);
+    } catch (err) {
+      console.error('Error comprobando username:', err);
+    }
+  };
+
+  const checkUsernameDebounced = useRef(
+    debounce(username => {
+      checkUsername(username);
+    }, 500)
+  ).current;
 
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -340,11 +358,22 @@ export default function RegisterScreen({ navigation }) {
           <TextInput
             placeholder="Nombre de usuario"
             value={form.username}
-            onChangeText={t => handleChange('username', t)}
+            onChangeText={t => {
+              handleChange('username', t);
+              setUsernameTaken(false);           // reset
+              checkUsernameDebounced(t.trim());  // llamada debounced
+            }}
+            onBlur={() => checkUsername(form.username.trim())}  // comprobación final
             style={[styles.input, { textAlign: 'center' }]}
-            placeholderTextColor="#fff"
             autoCapitalize="none"
+            placeholderTextColor="#fff"
           />
+          {usernameTaken && (
+            <Text style={styles.errorText}>
+              ✖ Este nombre de usuario ya está en uso
+            </Text>
+          )}
+
 
 
           <TextInput
@@ -591,7 +620,7 @@ export default function RegisterScreen({ navigation }) {
           <TouchableOpacity
             style={[styles.button, { opacity: loading ? 0.6 : 1 }]}
             onPress={handleRegister}
-            disabled={loading}
+            disabled={loading || usernameTaken}
           >
             <Text style={styles.buttonText}>
               {loading ? 'Registrando...' : 'Registrarme'}
@@ -636,6 +665,12 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     zIndex: 1,
+  },
+  errorText: {
+    alignSelf: 'flex-start',
+    color: '#e84646',
+    marginBottom: verticalScale(10),
+    marginLeft: moderateScale(12),
   },
   suggestionBox: {
     width: '100%',
