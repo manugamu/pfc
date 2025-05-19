@@ -34,17 +34,14 @@ public class SecurityConfig {
           .authorizeHttpRequests(auth -> auth
               .requestMatchers("/api/auth/**").permitAll()
               .requestMatchers("/api/users/register").permitAll()
+              .requestMatchers(HttpMethod.GET, "/api/users/exists/*").permitAll()
               .requestMatchers("/api/users/profile-image/**").permitAll()
-              .requestMatchers("/api/users/*").permitAll()
               .requestMatchers("/api/events").permitAll()
               .requestMatchers(HttpMethod.GET, "/api/events/*").permitAll()
               .requestMatchers("/api/falla/codigo/**").permitAll()
-
-              // Sólo FALLA puede listar sus falleros
+              .requestMatchers(HttpMethod.GET, "/api/users/*").permitAll()
               .requestMatchers(HttpMethod.GET,    "/api/falla/*/falleros").hasRole("FALLA")
-              // Sólo FALLA puede eliminar un fallero
               .requestMatchers(HttpMethod.DELETE, "/api/falla/*/fallero/*").hasRole("FALLA")
-
               .anyRequest().authenticated()
           )
           .addFilterBefore(
@@ -54,6 +51,7 @@ public class SecurityConfig {
 
         return http.build();
     }
+
 
     @Bean
     public PasswordEncoder passwordEncoder() {

@@ -63,7 +63,7 @@ export default function RegisterScreen({ navigation }) {
   const errorMessages = [
     "¡Mira darrere, darrere!",
     "¡Tot el tinglao l'ha pillat!",
-    "Em fa mal la panxa y tot..",
+    "Em fa mal la panxa i tot..",
     "¡Mira el de darrere, el de darrere!",
     "¡Em fa mal la panxaaaaaaaaa!",
     "¡Me se fan els pels de gallina!",
@@ -72,6 +72,26 @@ export default function RegisterScreen({ navigation }) {
   ];
   const [errorIndex, setErrorIndex] = useState(0);
 
+  const showPwdSecure =
+    form.password.length > 0 &&    // ya ha empezado a escribir
+    pwdLengthOk &&
+    pwdUpperOk &&
+    pwdDigitOk;
+
+  const showCodigoError =
+    !checkingCodigo &&
+    form.codigoFalla.trim().length >= 5 &&
+    codigoValido === false;
+
+  const showCodigoValid = codigoValido === true;
+
+
+  const showConfirmError = confirmTouched
+    && form.confirmPassword.length > 0
+    && !form.password.startsWith(form.confirmPassword);
+
+  const showConfirmSuccess = form.confirmPassword.length > 0
+    && form.confirmPassword === form.password;
 
   // Ajustar logo al mostrar/ocultar teclado
   useEffect(() => {
@@ -201,6 +221,17 @@ export default function RegisterScreen({ navigation }) {
     const re = /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/;
     return re.test(email);
   };
+
+  const [emailTouched, setEmailTouched] = useState(false);
+
+  const showEmailError =
+    emailTouched &&
+    form.email.length > 0 &&
+    !validateEmail(form.email);
+
+  const showEmailValid =
+  form.email.length > 0 &&
+  validateEmail(form.email);
 
 
   const validatePassword = pwd => {
@@ -380,11 +411,33 @@ export default function RegisterScreen({ navigation }) {
             placeholder="Correo electrónico"
             value={form.email}
             onChangeText={t => handleChange('email', t)}
-            style={[styles.input, { textAlign: 'center' }]}
-            placeholderTextColor="#fff"
             keyboardType="email-address"
             autoCapitalize="none"
+            placeholderTextColor="#fff"
+
+            // limpia el “touched” al entrar…
+            onFocus={() => setEmailTouched(false)}
+
+            // …y márcalo cuando salgas
+            onBlur={() => setEmailTouched(true)}
+
+            style={[
+              styles.input,
+              { textAlign: 'center' },
+              showEmailError
+                ? { borderColor: '#e84646' }
+                : showEmailValid
+                  ? { borderColor: '#7de868' }
+                  : null
+            ]}
           />
+          {showEmailError && (
+            <Text style={styles.errorText}>
+              ✖ Formato de correo inválido
+            </Text>
+          )}
+
+
 
 
           <TextInput
@@ -436,9 +489,16 @@ export default function RegisterScreen({ navigation }) {
             value={form.password}
             onChangeText={t => handleChange('password', t)}
             secureTextEntry
-            style={[styles.input, { textAlign: 'center' }]}
+            style={[
+              styles.input,
+              { textAlign: 'center' },
+              showPwdSecure
+                ? { borderColor: '#7de868' }  // verde cuando cumple los 3 requisitos
+                : null                        // por defecto mientras no cumpla todo
+            ]}
             placeholderTextColor="#fff"
           />
+
           {form.password.length > 0 && (
             <View style={{ alignSelf: 'flex-start', marginBottom: verticalScale(10) }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
@@ -510,9 +570,21 @@ export default function RegisterScreen({ navigation }) {
               setConfirmTouched(true);
             }}
             secureTextEntry
-            style={[styles.input, { textAlign: 'center' }]}
+            style={[
+              styles.input,
+              { textAlign: 'center' },
+              // sólo cuando se muestre el mensaje:
+              showConfirmError
+                ? { borderColor: '#e84646' }     // borde rojo
+                : showConfirmSuccess
+                  ? { borderColor: '#7de868' }   // borde verde
+                  : null                          // borde por defecto
+            ]}
             placeholderTextColor="#fff"
           />
+
+
+
 
           {confirmTouched &&
             form.confirmPassword.length > 0 &&
@@ -537,9 +609,6 @@ export default function RegisterScreen({ navigation }) {
             )}
 
 
-
-
-          {/* Éxito: cuando se igualan por completo */}
           {form.confirmPassword.length > 0 &&
             form.confirmPassword === form.password && (
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: verticalScale(6) }}>
@@ -568,10 +637,19 @@ export default function RegisterScreen({ navigation }) {
             placeholder="¿Eres fallero? Código de falla (opcional)"
             value={form.codigoFalla}
             onChangeText={t => handleChange('codigoFalla', t)}
-            style={[styles.input, { textAlign: 'center' }]}
-            placeholderTextColor="#fff"
             autoCapitalize="characters"
+            style={[
+              styles.input,
+              { textAlign: 'center' },
+              showCodigoError
+                ? { borderColor: '#e84646' }    // rojo si sale el mensaje de error
+                : showCodigoValid
+                  ? { borderColor: '#7de868' }  // verde si 'Código válido'
+                  : null                         // por defecto mientras comprueba o al limpiar
+            ]}
+            placeholderTextColor="#fff"
           />
+
 
           {(checkingCodigo || form.codigoFalla.trim().length >= 5) && (
             codigoValido ? (
@@ -602,7 +680,7 @@ export default function RegisterScreen({ navigation }) {
               >
                 {checkingCodigo
                   ? 'Comprobando código...'
-                  : 'Código no válido'}
+                  : 'El codigo introducido no corresponde a ninguna falla'}
               </Text>
             )
           )}
@@ -722,7 +800,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   messageOverlay: {
-    backgroundColor: 'rgba(2, 121, 22, 0.18)',  // semitransparente
+    backgroundColor: 'rgba(110, 110, 110, 0.18)',  // semitransparente
     padding: moderateScale(16),
     borderRadius: scale(10),
     alignSelf: 'center',
@@ -731,7 +809,7 @@ const styles = StyleSheet.create({
   joinText: {
     marginBottom: verticalScale(10),
     fontWeight: 'bold',
-    color: '#1E88E5',
+    color: '#fff',
     textAlign: 'center',
   },
   joinName: {
