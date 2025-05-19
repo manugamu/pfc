@@ -258,11 +258,11 @@ export default function EventoChatScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior="padding"
-        keyboardVerticalOffset={0}
-      >
+    <KeyboardAvoidingView
+  style={{ flex: 1 }}
+  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+  keyboardVerticalOffset={Platform.OS === 'ios' ? insets.bottom : 0}
+>
         <View style={styles.header}>
           <Image source={backgroundImage ? { uri: backgroundImage } : require('../assets/images/default-event.jpg')} style={styles.headerBackground} resizeMode="cover" />
           <View style={styles.headerOverlay} />
@@ -310,7 +310,7 @@ export default function EventoChatScreen({ route, navigation }) {
           </View>
         )}
 
-       <View style={[styles.inputRow, { paddingBottom: insets.bottom + 6 }]}>
+        <View style={[styles.inputRow, { paddingBottom: 6 }]}>
           <TextInput
             value={input}
             onChangeText={(text) => {
@@ -321,6 +321,9 @@ export default function EventoChatScreen({ route, navigation }) {
             style={styles.flatInput}
             placeholderTextColor="#ccc"
             multiline
+            allowFontScaling={false}
+            textAlignVertical="center"
+            maxHeight={100}
           />
 
           <TouchableOpacity onPress={sendMessage} style={styles.sendButtonClean}>
@@ -335,7 +338,7 @@ export default function EventoChatScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#121212' },
-   inputRow: {
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 8,

@@ -9,7 +9,6 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Image,
@@ -22,6 +21,8 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { Calendar } from 'react-native-calendars';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
+import Toast from 'react-native-toast-message';
+
 import { API_BASE_URL } from '../config'; 
 
 import { AuthContext } from '../context/AuthContext';
@@ -121,13 +122,13 @@ export default function CrearEventoScreen() {
   // Enviar formulario
   const handleSubmit = async () => {
     if (!title||!location||!description||!startDate||!endDate) {
-      Alert.alert('Error','Todos los campos son obligatorios');
+   Toast.show({ type: 'error', text1: 'Error', text2: 'Todos los campos son obligatorios' });
       return;
     }
     const start = moment(`${startDate} ${moment(startTime).format('HH:mm')}`);
     const end = moment(`${endDate} ${moment(endTime).format('HH:mm')}`);
     if (end.isBefore(start)) {
-      Alert.alert('Error','La hora de fin debe ser posterior a la de inicio');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'La hora de fin debe ser posterior a la de inicio' });
       return;
     }
     try {
@@ -154,10 +155,10 @@ export default function CrearEventoScreen() {
         body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error(`Código: ${res.status}`);
-      Alert.alert(isEditMode?'Evento actualizado':'Evento creado');
+      Toast.show({ type: 'success', text1: isEditMode ? 'Evento actualizado' : 'Evento creado' });
       navigation.goBack();
     } catch(e) {
-      Alert.alert('Error',e.message||'Error al guardar evento');
+    Toast.show({ type: 'error', text1: 'Error', text2: e.message || 'Error al guardar evento' });
     } finally {
       setUploading(false);
     }

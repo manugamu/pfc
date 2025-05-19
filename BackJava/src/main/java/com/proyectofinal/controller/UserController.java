@@ -72,6 +72,20 @@ public class UserController {
         return ResponseEntity.ok("Usuario registrado correctamente");
     }
 
+    
+    @GetMapping("/exists/{username}")
+    public ResponseEntity<Void> existsByUsername(@PathVariable String username) {
+        boolean exists = userService.existsByUsername(username);
+        if (exists) {
+            // 409 Conflict si ya existe
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        } else {
+            // 200 OK si no existe
+            return ResponseEntity.ok().build();
+        }
+    }
+
+    
     @PutMapping("/profile-image")
     public ResponseEntity<?> updateProfileImage(@RequestBody Map<String, String> request, Authentication auth) {
         String email = auth.getName();
