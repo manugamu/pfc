@@ -1,27 +1,7 @@
 Para desplegar el proyecto 
 
 
-1- Desplegar redis desde cmd (pfc-24-25-manugamu):
-
-docker-compose up -d 
-------------------------------------------------------------
-
-2- Desplegar el server de java+springboot (BackJava):
-
-ProyectoFinalApplication.java -> run as -> Java Application
-------------------------------------------------------------
-
-3- Desplegar el server websocket+expres de node.js (BackJs):
-
-node index.js 
-------------------------------------------------------------
-
-4- Desplegar el proyecto en androidstudio (FrontRN):
-
-npm i
-
-npx react-native run-android
-
+Descargar la apk en pfc\FrontRN\android\app\build\outputs\apk\release
 
 
 Tenemos 3 roles:
@@ -33,4 +13,5 @@ FALLERO: Puede crear eventos y hablar en ellos, tienen chat privado de FALLA, so
 USER: no pueden crear eventos, no tienen chat privado dado que no pertenecen a ningúna FALLA, solo pueden hablar en los chats de los eventos
 
 
-Se tiene que crear una FALLA mediante CrearFalla.js (CrearFalla y ChatTest) si se quiere tener eventos, porque sin una falla inicial no hay eventos ni pueden haber FALLEROS que puedan crearlos, solo USERs que, recordemos que no pueden crear eventos.
+EN CASO DE NO HABER FALLAS CREADAS:
+Se tiene que crear una FALLA mediante CrearFalla.js (pfc\CrearFallayChatTest\CrearFalla.js) si se quiere tener eventos, porque sin una falla inicial no hay eventos ni pueden haber FALLEROS que puedan crearlos, solo USERs que, recordemos que no pueden crear eventos.

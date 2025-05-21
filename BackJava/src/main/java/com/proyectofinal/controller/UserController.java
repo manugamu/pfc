@@ -37,13 +37,12 @@ public class UserController {
 
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody User newUser) {
-        // 1) Email existente?
         if (userService.findByEmail(newUser.getEmail()).isPresent()) {
             return ResponseEntity
                 .badRequest()
                 .body("El email ya está registrado");
         }
-        // 2) Username en uso?
+
         if (userService.existsByUsername(newUser.getUsername())) {
             return ResponseEntity
                 .status(HttpStatus.CONFLICT)

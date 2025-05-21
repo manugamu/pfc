@@ -1,4 +1,3 @@
-// MainTabs.js
 import React, { useEffect, useState, useCallback, useContext } from 'react';
 import { Image, Dimensions } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -47,7 +46,6 @@ export default function MainTabs() {
     }, [])
   );
 
-  // Tamaño base de los iconos según ancho de pantalla
   const baseIconSize = Dimensions.get('window').width * 0.043;
 
   return (
@@ -59,8 +57,8 @@ export default function MainTabs() {
         tabBarStyle: {
           backgroundColor: 'black',
           paddingVertical: 8,
-          height: 60 + insets.bottom,      // altura base + safe area
-          paddingBottom: insets.bottom,    // espacio interior inferior
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom,
         },
         tabBarIcon: ({ color, focused }) => {
           if (route.name === 'Perfil') {

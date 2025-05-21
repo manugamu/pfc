@@ -58,13 +58,11 @@ public class FallaController {
             User falla = fallaOpt.get();
             User usuario = userOpt.get();
 
-            // Actualizar usuario aceptado
             usuario.setRole("FALLERO");
             usuario.setCodigoFalla(falla.getFallaInfo().getFallaCode());
             usuario.setPendienteUnion(false);
             userRepository.save(usuario);
 
-            // Actualizar lista de falleros en la falla
             if (falla.getFallaInfo() != null) {
                 falla.getFallaInfo().getPendingRequests().remove(userId);
                 if (!falla.getFallaInfo().getFalleroIds().contains(userId)) {
@@ -90,13 +88,11 @@ public class FallaController {
         if (fallaOpt.isPresent()) {
             User falla = fallaOpt.get();
 
-            // Remover de pendiente en falla
             if (falla.getFallaInfo() != null) {
                 falla.getFallaInfo().getPendingRequests().remove(userId);
                 userRepository.save(falla);
             }
 
-            // Limpiar usuario
             if (userOpt.isPresent()) {
                 User usuario = userOpt.get();
                 usuario.setCodigoFalla(null);
@@ -128,13 +124,11 @@ public class FallaController {
             User falla = fallaOpt.get();
             User usuario = userOpt.get();
 
-            // Quitar de la lista de falleros
             if (falla.getFallaInfo() != null) {
                 falla.getFallaInfo().getFalleroIds().remove(userId);
                 userRepository.save(falla);
             }
 
-            // Resetear usuario
             usuario.setCodigoFalla(null);
             usuario.setPendienteUnion(false);
             usuario.setRole("USER");
@@ -154,13 +148,11 @@ public class FallaController {
                                  .body("Falla no encontrada");
         }
         User falla = fallaOpt.get();
-        // extrae los IDs de falleros
         List<String> falleroIds = falla.getFallaInfo() != null
                                  ? falla.getFallaInfo().getFalleroIds()
                                  : Collections.emptyList();
-        // carga los usuarios
+
         List<User> falleros = userRepository.findAllById(falleroIds);
-        // (opcional) podrías mapearlos a un DTO si no quieres exponer password u otros campos
         return ResponseEntity.ok(falleros);
     }
     

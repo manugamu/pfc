@@ -49,22 +49,22 @@ export default function LoginScreen({ navigation }) {
   const handleLogin = async () => {
     try {
       const deviceId = await getDeviceId();
-  
+
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: username, password, deviceId }),
       });
-  
+
       if (response.ok) {
         const data = await response.json();
-  
+
         if (!data.username) {
           Alert.alert('Error', 'El servidor no devolvió el username');
           return;
         }
-  
-       
+
+
         await EncryptedStorage.setItem('auth', JSON.stringify({
           id: data.id,
           username: data.username,
@@ -76,11 +76,11 @@ export default function LoginScreen({ navigation }) {
           codigoFalla: data.codigoFalla,
           fullName: data.fullName
         }));
-        
-  
+
+
         const stored = await EncryptedStorage.getItem('auth');
         console.log('🧠 Datos guardados en auth:', stored);
-  
+
         setIsLoggedIn(true);
         setRole(data.role);
       } else {
@@ -91,7 +91,7 @@ export default function LoginScreen({ navigation }) {
       Alert.alert('Error de red', 'No se pudo conectar al servidor');
     }
   };
-  
+
 
   return (
     <SafeAreaView style={styles.container}>

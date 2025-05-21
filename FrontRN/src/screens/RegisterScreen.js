@@ -1,5 +1,3 @@
-// RegisterScreen.js
-
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Text,
@@ -51,7 +49,7 @@ export default function RegisterScreen({ navigation }) {
   const [codigoValido, setCodigoValido] = useState(null);
   const [checkingCodigo, setCheckingCodigo] = useState(false);
   const [nombreFalla, setNombreFalla] = useState('');
-  const [pwdValid, setPwdValid] = useState(null);        // null = sin validar, true/false
+  const [pwdValid, setPwdValid] = useState(null);
   const [pwdMatch, setPwdMatch] = useState(null);
   const [pwdLengthOk, setPwdLengthOk] = useState(false);
   const [pwdUpperOk, setPwdUpperOk] = useState(false);
@@ -73,27 +71,32 @@ export default function RegisterScreen({ navigation }) {
   const [errorIndex, setErrorIndex] = useState(0);
 
   const showPwdSecure =
-    form.password.length > 0 &&    // ya ha empezado a escribir
+    form.password.length > 0 &&
     pwdLengthOk &&
     pwdUpperOk &&
     pwdDigitOk;
 
+  const [codigoTouched, setCodigoTouched] = useState(false);
+
   const showCodigoError =
+    codigoTouched &&
+    form.codigoFalla.trim().length > 0 &&
     !checkingCodigo &&
-    form.codigoFalla.trim().length >= 5 &&
     codigoValido === false;
 
-  const showCodigoValid = codigoValido === true;
+  const showCodigoValid =
+    form.codigoFalla.trim().length > 0 &&
+    codigoValido === true;
+
 
 
   const showConfirmError = confirmTouched
     && form.confirmPassword.length > 0
-    && !form.password.startsWith(form.confirmPassword);
+    && form.confirmPassword !== form.password;
 
   const showConfirmSuccess = form.confirmPassword.length > 0
     && form.confirmPassword === form.password;
 
-  // Ajustar logo al mostrar/ocultar teclado
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', () =>
       Animated.timing(logoHeight, {
@@ -173,19 +176,14 @@ export default function RegisterScreen({ navigation }) {
       }
     }
 
-    // Validación inmediata de la contraseña
     if (field === 'password') {
       setPwdLengthOk(value.length >= 8);
       setPwdUpperOk(/[A-Z]/.test(value));
       setPwdDigitOk(/\d/.test(value));
-      // solo si todos ok consideramos la contraseña en conjunto
       setPwdValid(value.length >= 8 && /[A-Z]/.test(value) && /\d/.test(value));
-      // revalidar match
       setPwdMatch(value === form.confirmPassword);
     }
 
-
-    // Validación inmediata de confirmación
     if (field === 'confirmPassword') {
       setPwdMatch(form.password === value);
     }
@@ -222,6 +220,8 @@ export default function RegisterScreen({ navigation }) {
     return re.test(email);
   };
 
+  const [usernameTouched, setUsernameTouched] = useState(false);
+
   const [emailTouched, setEmailTouched] = useState(false);
 
   const showEmailError =
@@ -230,14 +230,42 @@ export default function RegisterScreen({ navigation }) {
     !validateEmail(form.email);
 
   const showEmailValid =
-  form.email.length > 0 &&
-  validateEmail(form.email);
+    form.email.length > 0 &&
+    validateEmail(form.email);
 
 
   const validatePassword = pwd => {
     const re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
     return re.test(pwd);
   };
+
+  const [countryTouched, setCountryTouched] = useState(false);
+
+  const isCountryValid = allCountries.some(c =>
+    c.name_es.toLowerCase() === form.country.trim().toLowerCase() ||
+    c.name_en.toLowerCase() === form.country.trim().toLowerCase()
+  );
+  const showCountryError =
+    countryTouched &&
+    form.country.trim().length > 0 &&
+    !isCountryValid;
+
+  const showCountryValid =
+    form.country.trim().length > 0 &&
+    isCountryValid;
+
+
+  const isFormValid =
+    form.fullName.trim().length > 0 &&
+    form.username.trim().length > 0 &&
+    !usernameTaken &&
+    validateEmail(form.email) &&
+    validatePassword(form.password) &&
+    form.password === form.confirmPassword &&
+    (form.country.trim().length === 0 || isCountryValid) &&
+    (form.codigoFalla.trim().length === 0 || codigoValido === true);
+
+
 
   const handleRegister = async () => {
     const { country, username, email, password, confirmPassword } = form;
@@ -375,14 +403,18 @@ export default function RegisterScreen({ navigation }) {
           </Animated.View>
 
 
-
-
           <TextInput
             placeholder="Nombre completo"
             value={form.fullName}
             onChangeText={t => handleChange('fullName', t)}
             style={[styles.input, { textAlign: 'center' }]}
             placeholderTextColor="#fff"
+            contextMenuHidden={true}
+            autoCorrect={false}
+            spellCheck={false}
+            autoCompleteType="off"
+            textContentType="none"
+            importantForAutofill="no"
           />
 
 
@@ -391,21 +423,33 @@ export default function RegisterScreen({ navigation }) {
             value={form.username}
             onChangeText={t => {
               handleChange('username', t);
-              setUsernameTaken(false);           // reset
-              checkUsernameDebounced(t.trim());  // llamada debounced
+              setUsernameTaken(false);
+              checkUsernameDebounced(t.trim());
             }}
-            onBlur={() => checkUsername(form.username.trim())}  // comprobación final
-            style={[styles.input, { textAlign: 'center' }]}
+            onBlur={() => checkUsername(form.username.trim())}
             autoCapitalize="none"
             placeholderTextColor="#fff"
+            contextMenuHidden={true}
+            autoCorrect={false}
+            spellCheck={false}
+            autoCompleteType="off"
+            textContentType="none"
+            importantForAutofill="no"
+            style={[
+              styles.input,
+              { textAlign: 'center' },
+              form.username.trim().length > 0
+                ? usernameTaken
+                  ? { borderColor: '#e84646' }
+                  : { borderColor: '#7de868' }
+                : null
+            ]}
           />
           {usernameTaken && (
             <Text style={styles.errorText}>
-              ✖ Este nombre de usuario ya está en uso
+              Este nombre de usuario ya está en uso
             </Text>
           )}
-
-
 
           <TextInput
             placeholder="Correo electrónico"
@@ -415,10 +459,10 @@ export default function RegisterScreen({ navigation }) {
             autoCapitalize="none"
             placeholderTextColor="#fff"
 
-            // limpia el “touched” al entrar…
+
             onFocus={() => setEmailTouched(false)}
 
-            // …y márcalo cuando salgas
+
             onBlur={() => setEmailTouched(true)}
 
             style={[
@@ -433,28 +477,65 @@ export default function RegisterScreen({ navigation }) {
           />
           {showEmailError && (
             <Text style={styles.errorText}>
-              ✖ Formato de correo inválido
+              Formato de correo inválido
             </Text>
           )}
 
 
-
-
           <TextInput
-            placeholder="País"
+            placeholder="País (opcional)"
             placeholderTextColor="#fff"
-            style={[styles.input, { textAlign: 'center' }]}
             value={form.country}
-            onChangeText={text => handleChange('country', text)}
+            onChangeText={text => {
+              handleChange('country', text);
+              setCountryTouched(false);
+            }}
+            onFocus={() => {
+              setCountryTouched(false);
+              const trimmed = form.country.trim();
+              if (trimmed.length > 0) {
+                const q = trimmed.toLowerCase();
+                setFilteredCountries(
+                  allCountries
+                    .filter(c =>
+                      c.prefix.toLowerCase().includes(q) ||
+                      c.name_en.toLowerCase().includes(q) ||
+                      c.name_es.toLowerCase().includes(q)
+                    )
+                    .slice(0, 10)
+                );
+              }
+            }}
+            onBlur={() => {
+              setCountryTouched(true);
+              setFilteredCountries([]);
+            }}
             autoCapitalize="characters"
+            style={[
+              styles.input,
+              { textAlign: 'center' },
+              form.country.trim().length > 0
+                ? showCountryError
+                  ? { borderColor: '#e84646' }
+                  : showCountryValid
+                    ? { borderColor: '#7de868' }
+                    : null
+                : null
+            ]}
           />
+
+
+
           {filteredCountries.length > 0 && (
             <View style={styles.suggestionBox}>
               {filteredCountries.map((c, i) => (
                 <TouchableOpacity
                   key={i}
                   style={styles.suggestionItem}
-                  onPress={() => selectCountry(c)}
+                  onPress={() => {
+                    selectCountry(c);
+                    setCountryTouched(true);
+                  }}
                 >
                   <Text style={styles.suggestionText}>
                     {`${c.name_es} (${c.name_en}) [${c.prefix}]`}
@@ -464,6 +545,13 @@ export default function RegisterScreen({ navigation }) {
             </View>
           )}
 
+          {showCountryError && (
+            <Text style={styles.errorText}>
+              Debes escoger un país válido de la lista
+            </Text>
+          )}
+
+
 
           <TextInput
             placeholder="Teléfono (opcional)"
@@ -471,6 +559,12 @@ export default function RegisterScreen({ navigation }) {
             onChangeText={t => handleChange('phone', t)}
             style={[styles.input, { textAlign: 'center' }]}
             placeholderTextColor="#fff"
+            contextMenuHidden={true}
+            autoCorrect={false}
+            spellCheck={false}
+            autoCompleteType="off"
+            textContentType="none"
+            importantForAutofill="no"
             keyboardType="phone-pad"
           />
 
@@ -493,8 +587,8 @@ export default function RegisterScreen({ navigation }) {
               styles.input,
               { textAlign: 'center' },
               showPwdSecure
-                ? { borderColor: '#7de868' }  // verde cuando cumple los 3 requisitos
-                : null                        // por defecto mientras no cumpla todo
+                ? { borderColor: '#7de868' }
+                : null
             ]}
             placeholderTextColor="#fff"
           />
@@ -565,30 +659,33 @@ export default function RegisterScreen({ navigation }) {
           <TextInput
             placeholder="Confirmar contraseña"
             value={form.confirmPassword}
-            onChangeText={t => {
-              handleChange('confirmPassword', t);
+            onChangeText={t => handleChange('confirmPassword', t)}
+            onFocus={() => setConfirmTouched(false)}
+            onBlur={() => {
               setConfirmTouched(true);
+              if (form.confirmPassword !== form.password) {
+                setErrorIndex(prev => (prev + 1) % errorMessages.length);
+              }
             }}
             secureTextEntry
             style={[
               styles.input,
               { textAlign: 'center' },
-              // sólo cuando se muestre el mensaje:
-              showConfirmError
-                ? { borderColor: '#e84646' }     // borde rojo
-                : showConfirmSuccess
-                  ? { borderColor: '#7de868' }   // borde verde
-                  : null                          // borde por defecto
+              confirmTouched &&
+                form.confirmPassword.length > 0 &&
+                form.confirmPassword !== form.password
+                ? { borderColor: '#e84646' }
+                : form.confirmPassword.length > 0 &&
+                  form.confirmPassword === form.password
+                  ? { borderColor: '#7de868' }
+                  : null
             ]}
             placeholderTextColor="#fff"
           />
 
-
-
-
           {confirmTouched &&
             form.confirmPassword.length > 0 &&
-            !form.password.startsWith(form.confirmPassword) && (
+            form.confirmPassword !== form.password && (
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: verticalScale(6) }}>
                 <LottieView
                   source={require('../assets/animations/flamecheckred.json')}
@@ -596,14 +693,14 @@ export default function RegisterScreen({ navigation }) {
                   loop
                   style={{ width: moderateScale(16), height: moderateScale(16) }}
                 />
-                <Text style={{ color: '#e84646' }}>
-                  {errorIndex >= 0 && errorMessages[errorIndex]}
+                <Text style={{ color: '#e84646', marginLeft: moderateScale(6) }}>
+                  {errorMessages[errorIndex]}
                 </Text>
                 <LottieView
                   source={require('../assets/animations/flamecheckred.json')}
                   autoPlay
                   loop
-                  style={{ width: moderateScale(16), height: moderateScale(16) }}
+                  style={{ width: moderateScale(16), height: moderateScale(16), marginLeft: moderateScale(6) }}
                 />
               </View>
             )}
@@ -631,24 +728,37 @@ export default function RegisterScreen({ navigation }) {
             )}
 
 
-
-
           <TextInput
             placeholder="¿Eres fallero? Código de falla (opcional)"
             value={form.codigoFalla}
-            onChangeText={t => handleChange('codigoFalla', t)}
+            onChangeText={t => {
+              handleChange('codigoFalla', t);
+              setCodigoTouched(false);
+            }}
+            onFocus={() => setCodigoTouched(false)}
+            onBlur={() => {
+              setCodigoTouched(true);
+              verificarCodigoFalla(form.codigoFalla.trim().toUpperCase());
+            }}
             autoCapitalize="characters"
+            placeholderTextColor="#fff"
             style={[
               styles.input,
               { textAlign: 'center' },
-              showCodigoError
-                ? { borderColor: '#e84646' }    // rojo si sale el mensaje de error
-                : showCodigoValid
-                  ? { borderColor: '#7de868' }  // verde si 'Código válido'
-                  : null                         // por defecto mientras comprueba o al limpiar
+              form.codigoFalla.trim().length > 0 && (
+                showCodigoError
+                  ? { borderColor: '#e84646' }
+                  : showCodigoValid
+                    ? { borderColor: '#7de868' }
+                    : null
+              )
             ]}
-            placeholderTextColor="#fff"
           />
+          {showCodigoError && (
+            <Text style={styles.errorText}>
+              El código introducido no corresponde a ninguna falla
+            </Text>
+          )}
 
 
           {(checkingCodigo || form.codigoFalla.trim().length >= 5) && (
@@ -696,21 +806,20 @@ export default function RegisterScreen({ navigation }) {
 
 
           <TouchableOpacity
-            style={[styles.button, { opacity: loading ? 0.6 : 1 }]}
+            style={[
+              styles.button,
+              {
+                opacity: loading || !isFormValid ? 0.6 : 1
+              }
+            ]}
             onPress={handleRegister}
-            disabled={loading || usernameTaken}
+            disabled={loading || !isFormValid}
           >
             <Text style={styles.buttonText}>
               {loading ? 'Registrando...' : 'Registrarme'}
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={{ marginTop: verticalScale(12) }}
-          >
-            <Text style={styles.linkText}>¿Ya tienes cuenta? Inicia sesión</Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -745,10 +854,11 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   errorText: {
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
+    textAlign: 'center',
     color: '#e84646',
     marginBottom: verticalScale(10),
-    marginLeft: moderateScale(12),
+
   },
   suggestionBox: {
     width: '100%',
@@ -800,7 +910,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   messageOverlay: {
-    backgroundColor: 'rgba(110, 110, 110, 0.18)',  // semitransparente
+    backgroundColor: 'rgba(110, 110, 110, 0.18)',
     padding: moderateScale(16),
     borderRadius: scale(10),
     alignSelf: 'center',

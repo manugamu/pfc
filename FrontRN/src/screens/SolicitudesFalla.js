@@ -29,18 +29,15 @@ export default function GestionFalleros({ navigation }) {
   const [selectedUser, setSelectedUser] = useState(null);
   const [processingDelete, setProcessingDelete] = useState(false);
 
-  // diálogo de contraseña
   const [pwDialogVisible, setPwDialogVisible] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
 
-  // Carga solicitudes + falleros
   const fetchData = async () => {
     setLoading(true);
     try {
       const token = await getValidAccessToken(navigation, setIsLoggedIn);
       if (!token) return;
 
-      // validar rol FALLA
       const meRes = await fetch(`${API_BASE_URL}/api/users/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -55,7 +52,6 @@ export default function GestionFalleros({ navigation }) {
 
       const { id: fallaId } = JSON.parse(await EncryptedStorage.getItem('auth'));
 
-      // solicitudes pendientes
       const resSol = await fetch(
         `${API_BASE_URL}/api/falla/solicitudes/${fallaId}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -63,7 +59,6 @@ export default function GestionFalleros({ navigation }) {
       if (!resSol.ok) throw new Error('Error obteniendo solicitudes');
       setSolicitudes(await resSol.json());
 
-      // falleros
       const resFall = await fetch(
         `${API_BASE_URL}/api/falla/${fallaId}/falleros`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -83,7 +78,6 @@ export default function GestionFalleros({ navigation }) {
     fetchData();
   }, []);
 
-  // Aceptar solicitud
   const aceptarUsuario = async userId => {
     try {
       const token = await getValidAccessToken(navigation, setIsLoggedIn);
@@ -103,7 +97,6 @@ export default function GestionFalleros({ navigation }) {
     }
   };
 
-  // Rechazar solicitud
   const rechazarUsuario = async userId => {
     try {
       const token = await getValidAccessToken(navigation, setIsLoggedIn);
@@ -123,13 +116,11 @@ export default function GestionFalleros({ navigation }) {
     }
   };
 
-  // Mostrar diálogo contraseña
   const confirmAndDelete = () => {
     setPasswordInput('');
     setPwDialogVisible(true);
   };
 
-  // Eliminar fallero
   const handleDeleteFallero = async password => {
     setPwDialogVisible(false);
     if (!selectedUser) return;
@@ -158,13 +149,13 @@ export default function GestionFalleros({ navigation }) {
     }
   };
 
-  // Render de solicitud individual
+
   const renderSolicitudItem = ({ item }) => (
     <View style={styles.solicitudCard}>
       <Image
-        source={ item.profileImageUrl
+        source={item.profileImageUrl
           ? { uri: item.profileImageUrl }
-          : require('../assets/images/default-avatar.png') }
+          : require('../assets/images/default-avatar.png')}
         style={styles.solicitudAvatar}
       />
       <Text style={styles.solicitudName}>{item.username}</Text>
@@ -179,16 +170,16 @@ export default function GestionFalleros({ navigation }) {
     </View>
   );
 
-  // Render de fallero individual
+
   const renderFalleroItem = ({ item }) => (
     <TouchableOpacity
       style={styles.falleroCard}
       onPress={() => { setSelectedUser(item); setModalVisible(true); }}
     >
       <Image
-        source={ item.profileImageUrl
+        source={item.profileImageUrl
           ? { uri: item.profileImageUrl }
-          : require('../assets/images/default-avatar.png') }
+          : require('../assets/images/default-avatar.png')}
         style={styles.falleroAvatar}
       />
       <View style={styles.falleroInfo}>
@@ -210,7 +201,6 @@ export default function GestionFalleros({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
 
-      {/* Diálogo contraseña */}
       <Dialog.Container visible={pwDialogVisible}>
         <Dialog.Title>Eliminar Fallero</Dialog.Title>
         <Dialog.Input
@@ -226,7 +216,6 @@ export default function GestionFalleros({ navigation }) {
         />
       </Dialog.Container>
 
-      {/* Cabecera */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -237,7 +226,6 @@ export default function GestionFalleros({ navigation }) {
         <Text style={styles.title}>Gestión de Falleros</Text>
       </View>
 
-      {/* Sección Solicitudes */}
       {solicitudes.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Solicitudes</Text>
@@ -252,7 +240,6 @@ export default function GestionFalleros({ navigation }) {
         </View>
       )}
 
-      {/* Sección Falleros */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tus Falleros</Text>
       </View>
@@ -263,7 +250,6 @@ export default function GestionFalleros({ navigation }) {
         contentContainerStyle={styles.fallerosList}
       />
 
-      {/* Modal info fallero */}
       <Modal
         visible={modalVisible}
         transparent
@@ -335,40 +321,40 @@ export default function GestionFalleros({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container:           { flex: 1, backgroundColor: '#121212' },
-  loaderContainer:     { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: '#121212' },
+  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-  header:              { flexDirection: 'row', alignItems: 'center', padding: 16 },
-  backButton:          { marginRight: 12 },
-  title:               { fontSize: 22, fontWeight: 'bold', color: '#fff' },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 16 },
+  backButton: { marginRight: 12 },
+  title: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
 
-  section:             { marginTop: 16, marginBottom: 8, paddingHorizontal: 16 },
-  sectionTitle:        { color: '#fff', fontSize: 18, fontWeight: '600', marginBottom: 8 },
+  section: { marginTop: 16, marginBottom: 8, paddingHorizontal: 16 },
+  sectionTitle: { color: '#fff', fontSize: 18, fontWeight: '600', marginBottom: 8 },
 
-  solicitudesList:     { paddingVertical: 4 },      
-  fallerosList:        { paddingBottom: 20 },      
+  solicitudesList: { paddingVertical: 4 },
+  fallerosList: { paddingBottom: 20 },
 
-  solicitudCard:       { width: 80, marginRight: 12, backgroundColor: '#1f1f1f', borderRadius: 8, alignItems: 'center', padding: 8 },
-  solicitudAvatar:     { width: 48, height: 48, borderRadius: 24, marginBottom: 6 },
-  solicitudName:       { color: '#fff', fontSize: 12, textAlign: 'center' },
-  solicitudActions:    { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 4 },
+  solicitudCard: { width: 80, marginRight: 12, backgroundColor: '#1f1f1f', borderRadius: 8, alignItems: 'center', padding: 8 },
+  solicitudAvatar: { width: 48, height: 48, borderRadius: 24, marginBottom: 6 },
+  solicitudName: { color: '#fff', fontSize: 12, textAlign: 'center' },
+  solicitudActions: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginTop: 4 },
 
-  falleroCard:         { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1f1f1f', borderRadius: 8, padding: 12, marginHorizontal: 16, marginVertical: 6 },
- falleroAvatar: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
-  falleroInfo:         { flex: 1 },
-  username:            { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  fullName:            { color: '#bbb', fontSize: 14 },
+  falleroCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1f1f1f', borderRadius: 8, padding: 12, marginHorizontal: 16, marginVertical: 6 },
+  falleroAvatar: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
+  falleroInfo: { flex: 1 },
+  username: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  fullName: { color: '#bbb', fontSize: 14 },
 
-  modalOverlay:        { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
-  modalContent:        { width: '85%', maxHeight: '80%', backgroundColor: '#1f1f1f', borderRadius: 12, padding: 16 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { width: '85%', maxHeight: '80%', backgroundColor: '#1f1f1f', borderRadius: 12, padding: 16 },
 
-  modalAvatar:         { width: 80, height: 80, borderRadius: 40, alignSelf: 'center', marginBottom: 12 },
-  modalUsername:       { fontSize: 18, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 12 },
-  modalField:          { color: '#ccc', fontSize: 14, marginBottom: 8 },
+  modalAvatar: { width: 80, height: 80, borderRadius: 40, alignSelf: 'center', marginBottom: 12 },
+  modalUsername: { fontSize: 18, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 12 },
+  modalField: { color: '#ccc', fontSize: 14, marginBottom: 8 },
 
-  modalActions:        { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 },
-  cancelBtn:           { paddingHorizontal: 16, paddingVertical: 8, marginRight: 8 },
-  cancelText:          { color: '#fff', fontSize: 14 },
-  deleteBtn:           { backgroundColor: '#f44336', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
-  deleteText:          { color: '#fff', fontSize: 14, fontWeight: 'bold' }
+  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 16 },
+  cancelBtn: { paddingHorizontal: 16, paddingVertical: 8, marginRight: 8 },
+  cancelText: { color: '#fff', fontSize: 14 },
+  deleteBtn: { backgroundColor: '#f44336', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
+  deleteText: { color: '#fff', fontSize: 14, fontWeight: 'bold' }
 });

@@ -26,9 +26,9 @@ public class JwtUtil {
         long now = System.currentTimeMillis();
         return Jwts.builder()
             .setSubject(email)
-            .claim("role", role)  // ← añadimos el rol como claim
+            .claim("role", role)  
             .setIssuedAt(new Date(now))
-            .setExpiration(new Date(now + 1000 * 60 * 60)) // ej. 1 hora de validez
+            .setExpiration(new Date(now + 1000 * 60 * 60)) 
             .setId(UUID.randomUUID().toString())
             .signWith(getSigningKey(), SignatureAlgorithm.HS256)
             .compact();
@@ -39,7 +39,7 @@ public class JwtUtil {
         return Jwts.builder()
             .setSubject(email)
             .setIssuedAt(new Date(now))
-            .setExpiration(new Date(now + 1000 * 60 * 60 * 24 * 7)) // 7 días
+            .setExpiration(new Date(now + 1000 * 60 * 60 * 24 * 7)) 
             .setId(UUID.randomUUID().toString())
             .signWith(getSigningKey(), SignatureAlgorithm.HS256)
             .compact();

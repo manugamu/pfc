@@ -102,12 +102,10 @@ public class EventController {
             Event existingEvent = existingOpt.get();
             User user = userOpt.get();
 
-            // Solo puede editar si es el creador
             if (!existingEvent.getCreatorId().equals(user.getId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("No tienes permisos para editar este evento");
             }
 
-            // Actualizar campos editables
             existingEvent.setTitle(updatedEvent.getTitle());
             existingEvent.setDescription(updatedEvent.getDescription());
             existingEvent.setLocation(updatedEvent.getLocation());

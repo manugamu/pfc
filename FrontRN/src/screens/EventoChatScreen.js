@@ -258,11 +258,11 @@ export default function EventoChatScreen({ route, navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-    <KeyboardAvoidingView
-  style={{ flex: 1 }}
-  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-  keyboardVerticalOffset={Platform.OS === 'ios' ? insets.bottom : 0}
->
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.bottom : 0}
+      >
         <View style={styles.header}>
           <Image source={backgroundImage ? { uri: backgroundImage } : require('../assets/images/default-event.jpg')} style={styles.headerBackground} resizeMode="cover" />
           <View style={styles.headerOverlay} />
@@ -290,7 +290,7 @@ export default function EventoChatScreen({ route, navigation }) {
           data={Array.isArray(messages) ? messages : []}
           keyExtractor={(_, index) => index.toString()}
           renderItem={renderItem}
-          style={{ flex: 1 }}                           // ocupa todo el espacio disponible
+          style={{ flex: 1 }}
           contentContainerStyle={{ padding: 10 }}
           ListEmptyComponent={
             <Text style={{ color: '#ccc', textAlign: 'center', marginTop: 20 }}>

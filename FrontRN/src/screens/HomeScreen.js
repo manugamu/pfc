@@ -1,5 +1,3 @@
-// src/screens/HomeScreen.js
-
 import React, { useEffect, useState, useContext, useRef } from 'react';
 import {
   View,
@@ -121,7 +119,6 @@ export default function HomeScreen() {
   return (
     <ImageBackground source={backgroundImage} style={styles.background}>
       <View style={styles.overlay}>
-        {/* Toolbar */}
         <View style={styles.toolbar}>
           <Text style={styles.title}>Eventos</Text>
           {role === 'FALLA' ? (
@@ -156,7 +153,6 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Content */}
         {loading ? (
           <ActivityIndicator color="#fff" size="large" style={{ marginTop: 20 }} />
         ) : (
@@ -260,11 +256,11 @@ export default function HomeScreen() {
               <View style={styles.sectionOverlay}>
                 <View style={styles.lockedContainer}>
                   <LottieView
-        source={require('../assets/animations/lock.json')}
-        autoPlay
-        loop
-        style={styles.lockAnimation}
-      />
+                    source={require('../assets/animations/lock.json')}
+                    autoPlay
+                    loop
+                    style={styles.lockAnimation}
+                  />
                   <Text style={styles.lockedText}>
                     Esta sección está bloqueada. Para empezar a crear eventos, únete a tu falla.
                   </Text>
@@ -313,7 +309,6 @@ export default function HomeScreen() {
           </Animated.ScrollView>
         )}
 
-        {/* Scroll-to-top arrow (Lottie) */}
         <Animated.View
           pointerEvents={showButton ? 'auto' : 'none'}
           style={[styles.scrollTopContainer, { opacity: fadeAnim }]}
@@ -360,10 +355,10 @@ const styles = StyleSheet.create({
   },
 
   lockAnimation: {
-  width: screenWidth * 0.2,
-  height: screenWidth * 0.2,
-  marginBottom: screenWidth * 0.03,
-},
+    width: screenWidth * 0.2,
+    height: screenWidth * 0.2,
+    marginBottom: screenWidth * 0.03,
+  },
 
 
   fallaButtons: {

@@ -42,12 +42,11 @@ public class AuthController {
             boolean matches = passwordEncoder.matches(loginRequest.getPassword(), user.getPassword());
 
             if (matches) {
-                // Ahora incluimos el rol en el token
                 String accessToken  = jwtUtil.generateToken(user.getEmail(), user.getRole());
                 String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
                 String deviceId     = loginRequest.getDeviceId();
 
-                // Guardamos refresh token por dispositivo
+         
                 user.getRefreshTokens().removeIf(rt ->
                     deviceId.equals(rt.getDeviceId()) || rt.getToken().equals(refreshToken)
                 );
@@ -95,14 +94,12 @@ public class AuthController {
                                      .body("Refresh token inválido o expirado");
             }
 
-            // Aquí también generamos el accessToken con rol
             String newAccessToken  = jwtUtil.generateToken(user.getEmail(), user.getRole());
             String newRefreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
             user.getRefreshTokens().removeIf(rt -> deviceId.equals(rt.getDeviceId()));
             user.getRefreshTokens().add(new RefreshTokenInfo(deviceId, newRefreshToken));
 
-            // Compactamos la lista de refresh tokens
             Map<String, String> uniqueTokens = new HashMap<>();
             for (RefreshTokenInfo rt : user.getRefreshTokens()) {
                 uniqueTokens.put(rt.getDeviceId(), rt.getToken());

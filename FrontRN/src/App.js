@@ -1,4 +1,3 @@
-// App.js
 import React, { useContext } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';

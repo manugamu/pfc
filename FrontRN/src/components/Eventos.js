@@ -14,7 +14,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { getValidAccessToken } from '../services/authService';
-import { API_BASE_URL } from '../config'; 
+import { API_BASE_URL } from '../config';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const MAX_CHARS = 30;
@@ -42,9 +42,8 @@ export default function Evento({
   const [loading, setLoading] = useState(true);
   const [showFullDescription, setShowFullDescription] = useState(false);
 
-  // Determinar si es tu propio evento
+
   const isOwn = miId === creatorId;
-  // Colores del gradiente: verde si es propio, naranja si no
   const gradientColors = isOwn
     ? ['#32CD32', '#228B22']
     : ['#FFD700', '#FFA500'];
@@ -78,14 +77,13 @@ export default function Evento({
 
   const openLocation = () => {
     const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`;
-    Linking.openURL(url).catch(() => {});
+    Linking.openURL(url).catch(() => { });
   };
 
   const fmt = (d, opts) => new Date(d).toLocaleString('es-ES', opts);
   const toggleDescription = () => setShowFullDescription(!showFullDescription);
   const shouldTruncate = description.length > MAX_CHARS;
 
-  // Manejar long press solo para tus eventos
   const handleLongPress = () => {
     if (!isOwn) return;
     Alert.alert(
@@ -110,7 +108,7 @@ export default function Evento({
     );
   };
 
-  // Llamada API para eliminar
+
   const handleDelete = async () => {
     try {
       const token = await getValidAccessToken(navigation);

@@ -54,7 +54,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             User user = userRepository.findByEmail(email).orElse(null);
             if (user != null && jwtUtil.validateToken(token, email)) {
-                // Extraer rol del token y convertirlo en GrantedAuthority
+               
                 String role = jwtUtil.extractRole(token); 
                 List<SimpleGrantedAuthority> authorities = List.of(
                     new SimpleGrantedAuthority("ROLE_" + role)

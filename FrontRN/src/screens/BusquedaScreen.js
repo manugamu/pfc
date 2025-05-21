@@ -19,7 +19,7 @@ import { getValidAccessToken, logoutUser } from '../services/authService';
 import Evento from '../components/Eventos';
 import { useBackground } from '../context/BackgroundContext';
 import EncryptedStorage from 'react-native-encrypted-storage';
-import { API_BASE_URL } from '../config'; 
+import { API_BASE_URL } from '../config';
 
 export default function BusquedasScreen() {
   const navigation = useNavigation();
@@ -55,7 +55,9 @@ export default function BusquedasScreen() {
         return;
       }
       const data = await res.json();
-      setEvents(data);
+      const now = new Date();
+      const activos = data.filter(evt => new Date(evt.endDate) > now);
+      setEvents(activos);
     } catch (err) {
       console.error('Error cargando eventos:', err);
     } finally {
@@ -151,7 +153,7 @@ export default function BusquedasScreen() {
 
         <FlatList
           data={filtered}
-          keyExtractor={(item) => item.id}
+          keyExtractor={item => item.id}
           contentContainerStyle={{ paddingBottom: 24 }}
           refreshControl={
             <RefreshControl
